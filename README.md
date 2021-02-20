@@ -1,2 +1,2 @@
-# micloud
-XiaoMi IoT Cloud
+# MiCom
+XiaoMi IoT Cloud API for mi.com
