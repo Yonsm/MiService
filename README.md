@@ -1,20 +1,22 @@
-# MiCloud
-XiaoMi IoT Cloud API for mi.com
+# MiService
+XiaoMi Service API for mi.com
 
-MiCloud：小米网账号、MiIO/MiOT/MiNA 云服务 API
+```
+MiCli：命令行工具
+MiService：小米网账号、MiIO/MiOT/MiNA 云服务 API
   |
-  |-- MiAuth：一个账号一个实例，支持多个服务 ID（sid）的 Token 获取
-  |-- MiCom：服务基础类
+  |-- MiAccount：一个账号一个实例，支持多个服务 ID（sid）的 Token 获取
+  |-- MiBaseService：服务基础类
   |   |
-  |   |-- MiIOCom：小米 MiIO API，sid=xiaomiio
+  |   |-- MiIOService：小米 MiIO API，sid=xiaomiio
   |   |     |
   |   |     |-- MIoT_xxx：miot 基于 miio
   |   |
-  |   |-- MiNACom：sid=micoapi
+  |   |-- MiNAService：sid=micoapi
   |   |
-  |   |-- MiAPICom：待建设
-  |-- MiIOCmd：小米 MiIO 的命令式使用工具接口
-  |-- MiCli：命令行工具
+  |   |-- MiAPIService：待建设
+  |-- MiIOCommand：小米 MiIO 的命令式使用工具接口
+```
 
 ## MiIO Command Line
 ```
