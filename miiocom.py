@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import json
 import logging
+from micom import MiCom
 import os
 import time
 
@@ -43,7 +44,7 @@ def sign_data(uri, data, ssecurity):
     return {'_nonce': nonce, 'data': data, 'signature': signature}
 
 
-class MiIOCom:
+class MiIOCom(MiCom):
 
     def __init__(self, auth, region=None):
         self.auth = auth
@@ -54,7 +55,7 @@ class MiIOCom:
             cookies['PassportDeviceId'] = self.auth.token['deviceId']
             return sign_data(uri, data, self.auth.token['ssecurity'])
         headers = {'User-Agent': 'iOS-14.4-6.0.103-iPhone12,3--D7744744F7AF32F0544445285880DD63E47D9BE9-8816080-84A3F44E137B71AE-iPhone', 'x-xiaomi-protocal-flag-cli': 'PROTOCAL-HTTP2'}
-        return (await self.auth.request('xiaomiio', self.server + uri, prepare_data, headers))['result']
+        return (await self.request('xiaomiio', self.server + uri, prepare_data, headers))['result']
 
     async def miot_request(self, cmd, params):
         return await self.miio_request('/miotspec/' + cmd, {'params': params})

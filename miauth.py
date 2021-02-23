@@ -6,6 +6,7 @@ import os
 import random
 import string
 from urllib import parse
+from aiohttp import ClientSession
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ class MiTokenStore:
 
 class MiAuth:
 
-    def __init__(self, session, username, password, token_store='.mi.token'):
+    def __init__(self, session: ClientSession, username, password, token_store='.mi.token'):
         self.session = session
         self.username = username
         self.password = password
@@ -103,29 +104,3 @@ class MiAuth:
         if not serviceToken:
             raise Exception(await r.text())
         return serviceToken
-
-    async def request(self, sid, url, data, headers, relogin=True):
-        if (self.token and sid in self.token) or await self.login(sid):  # Ensure login
-            cookies = {'userId': self.token['userId'], 'serviceToken': self.token[sid]}
-            if callable(data):
-                data = data(cookies)
-            _LOGGER.info(f"{url} {data}")
-            r = await self.session.request('GET' if data is None else 'POST', url, data=data, cookies=cookies, headers=headers)
-            status = r.status
-            if status == 200 or status == 401:
-                if status == 200:
-                    resp = await r.json(content_type=None)
-                    code = resp['code']
-                    if code == 0:
-                        return resp
-                if relogin and status == 401 or 'auth' in resp.get('message', '').lower():
-                    _LOGGER.warn(f"Auth error on request {url}, relogin...")
-                    self.token = None  # Auth error, reset login
-                    return await self.request(sid, url, data, headers, False)
-            else:
-                resp = await r.text()
-        else:
-            resp = "Login failed"
-        error = f"Error {url}: {resp}"
-        _LOGGER.error(error)
-        raise Exception(error)

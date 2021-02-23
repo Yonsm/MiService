@@ -1,14 +1,12 @@
 import json
-from miauth import MiAuth, get_random
+from micom import MiCom
+from miauth import get_random
 
 import logging
 _LOGGER = logging.getLogger(__name__)
 
 
-class MiNACom:
-
-    def __init__(self, auth: MiAuth):
-        self.auth = auth
+class MiNACom(MiCom):
 
     async def mina_request(self, uri, data=None):
         requestId = 'app_ios_' + get_random(30)
@@ -17,7 +15,7 @@ class MiNACom:
         else:
             uri += '&requestId=' + requestId
         headers = {'User-Agent': 'MiHome/6.0.103 (com.xiaomi.mihome; build:6.0.103.1; iOS 14.4.0) Alamofire/6.0.103 MICO/iOSApp/appStore/6.0.103'}
-        return await self.auth.request('micoapi', 'https://api2.mina.mi.com' + uri, data, headers)
+        return await self.request('micoapi', 'https://api2.mina.mi.com' + uri, data, headers)
 
     async def device_list(self):
         result = await self.mina_request('/admin/v2/device_list?master=0')

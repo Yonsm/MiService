@@ -1,5 +1,6 @@
 
 import json
+from miiocom import MiIOCom
 
 
 def twins_split(string, sep, default=None):
@@ -45,7 +46,7 @@ MiIO Spec: {prefix}spec [model_keyword|type_urn]\n\
            {prefix}spec urn:miot-spec-v2:device:speaker:0000A015:xiaomi-lx04:1\n\
 '
 
-async def miio_cmd(miiocom, did, text, prefix='?'):
+async def miio_cmd(miiocom: MiIOCom, did, text, prefix='?'):
 
     cmd, arg = twins_split(text, ' ')
 
