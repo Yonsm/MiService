@@ -50,7 +50,7 @@ async def miio_cmd(miiocom, did, text, prefix='?'):
     cmd, arg = twins_split(text, ' ')
 
     if cmd.startswith('/'):
-        return await miiocom.request(cmd, arg)
+        return await miiocom.miio_request(cmd, arg)
 
     if cmd.startswith('prop') or cmd == 'action':
         return await miiocom.miot_request(cmd, json.loads(arg) if arg else None)

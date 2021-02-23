@@ -49,7 +49,7 @@ class MiIOCom:
         self.auth = auth
         self.server = 'https://' + ('' if region is None or region == 'cn' else region + '.') + 'api.io.mi.com/app'
 
-    async def request(self, uri, data):
+    async def miio_request(self, uri, data):
         def prepare_data(cookies):
             cookies['PassportDeviceId'] = self.auth.token['deviceId']
             return sign_data(uri, data, self.auth.token['ssecurity'])
@@ -57,7 +57,7 @@ class MiIOCom:
         return (await self.auth.request('xiaomiio', self.server + uri, prepare_data, headers))['result']
 
     async def miot_request(self, cmd, params):
-        return await self.request('/miotspec/' + cmd, {'params': params})
+        return await self.miio_request('/miotspec/' + cmd, {'params': params})
 
     async def miot_get_props(self, did, props):
         params = [{'did': did, 'siid': prop[0], 'piid': prop[1]} for prop in props]
@@ -93,6 +93,6 @@ class MiIOCom:
             return await r.json()
 
     async def device_list(self, name=None, getVirtualModel=False, getHuamiDevices=0):
-        result = await self.request('/home/device_list', {'getVirtualModel': bool(getVirtualModel), 'getHuamiDevices': int(getHuamiDevices)})
+        result = await self.miio_request('/home/device_list', {'getVirtualModel': bool(getVirtualModel), 'getHuamiDevices': int(getHuamiDevices)})
         result = result['list']
         return result if name == 'full' else [{'name': i['name'], 'model': i['model'], 'did': i['did'], 'token': i['token']} for i in result if not name or name in i['name']]

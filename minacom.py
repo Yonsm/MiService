@@ -10,7 +10,7 @@ class MiNACom:
     def __init__(self, auth: MiAuth):
         self.auth = auth
 
-    async def request(self, uri, data=None):
+    async def mina_request(self, uri, data=None):
         requestId = 'app_ios_' + get_random(30)
         if data is not None:
             data['requestId'] = requestId
@@ -20,12 +20,12 @@ class MiNACom:
         return await self.auth.request('micoapi', 'https://api2.mina.mi.com' + uri, data, headers)
 
     async def device_list(self):
-        result = await self.request('/admin/v2/device_list?master=0')
+        result = await self.mina_request('/admin/v2/device_list?master=0')
         return result.get('data') if result else None
 
     async def ubus_request(self, deviceId, method, path, message):
         message = json.dumps(message)
-        result = await self.request('/remote/ubus', {'deviceId': deviceId, 'message': message, 'method': method, 'path': path})
+        result = await self.mina_request('/remote/ubus', {'deviceId': deviceId, 'message': message, 'method': method, 'path': path})
         return result and result.get('code') == 0
 
     async def text_to_speech(self, deviceId, text):
