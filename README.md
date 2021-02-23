@@ -1,6 +1,11 @@
 # MiService
 XiaoMi Service API for mi.com
 
+## Install
+```
+pip3 install miservice
+```
+
 ## MiSerivce Library
 ```
 MiService：小米网账号、MiIO/MiOT/MiNA 云服务 API
