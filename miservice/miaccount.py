@@ -3,11 +3,16 @@ import hashlib
 import json
 import logging
 import os
+import random
+import string
 from urllib import parse
 from aiohttp import ClientSession
-from . import get_random
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__package__)
+
+
+def get_random(length):
+    return ''.join(random.sample(string.ascii_letters + string.digits, length))
 
 
 class MiTokenStore:
@@ -46,7 +51,7 @@ class MiAccount:
     async def get_token(self, sid):
         if self.token:
             if sid in self.token:
-                 return self.token
+                return self.token
         else:
             self.token = {'deviceId': get_random(16).upper()}
         try:

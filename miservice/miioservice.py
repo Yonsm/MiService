@@ -5,9 +5,9 @@ import hashlib
 import hmac
 import json
 import logging
-from . import MiBaseService
+from .mibaseservice import MiBaseService
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__package__)
 
 # REGIONS = ['cn', 'de', 'i2', 'ru', 'sg', 'us']
 

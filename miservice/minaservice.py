@@ -1,8 +1,9 @@
 import json
-from . import MiBaseService, get_random
+from .miaccount import get_random
+from .mibaseservice import MiBaseService
 
 import logging
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__package__)
 
 
 class MiNAService(MiBaseService):

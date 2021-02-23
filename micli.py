@@ -6,10 +6,7 @@ import json
 import os
 import sys
 
-from .miaccount import MiAccount, _LOGGER as _LOGGER1
-from .minaservice import MiNAService
-from .miioservice import MiIOService, _LOGGER as _LOGGER2
-from .miiocommand import miio_command, miio_command_help
+from miservice import MiAccount, MiNAService, MiIOService, miio_command, miio_command_help
 
 
 def usage(did):
@@ -50,10 +47,9 @@ if __name__ == '__main__':
         level = logging.WARNING
     if argc > 1 and username and password:
         if level != logging.NOTSET:
-            _LOGGER1.setLevel(level)
-            _LOGGER2.setLevel(level)
-            _LOGGER1.addHandler(logging.StreamHandler())
-            _LOGGER2.addHandler(logging.StreamHandler())
+            _LOGGER = logging.getLogger('miservice')
+            _LOGGER.setLevel(level)
+            _LOGGER.addHandler(logging.StreamHandler())
         loop = asyncio.get_event_loop()
         loop.run_until_complete(main(username, password, did, ' '.join(argv[1:])))
         loop.close()

@@ -46,6 +46,7 @@ MiIO Spec: {prefix}spec [model_keyword|type_urn]\n\
            {prefix}spec urn:miot-spec-v2:device:speaker:0000A015:xiaomi-lx04:1\n\
 '
 
+
 async def miio_command(service: MiIOService, did, text, prefix='?'):
 
     cmd, arg = twins_split(text, ' ')
