@@ -1,8 +1,46 @@
+import base64
+import hashlib
+import hmac
+import json
 import logging
+import os
+import time
 
 _LOGGER = logging.getLogger(__name__)
 
 # REGIONS = ['cn', 'de', 'i2', 'ru', 'sg', 'us']
+
+
+def gen_nonce():
+    """Time based nonce."""
+    nonce = os.urandom(8) + int(time.time() / 60).to_bytes(4, 'big')
+    return base64.b64encode(nonce).decode()
+
+
+def gen_signed_nonce(ssecret, nonce):
+    """Nonce signed with ssecret."""
+    m = hashlib.sha256()
+    m.update(base64.b64decode(ssecret))
+    m.update(base64.b64decode(nonce))
+    return base64.b64encode(m.digest()).decode()
+
+
+def gen_signature(url, signed_nonce, nonce, data):
+    """Request signature based on url, signed_nonce, nonce and data."""
+    sign = '&'.join([url, signed_nonce, nonce, 'data=' + data])
+    signature = hmac.new(key=base64.b64decode(signed_nonce),
+                         msg=sign.encode(),
+                         digestmod=hashlib.sha256).digest()
+    return base64.b64encode(signature).decode()
+
+
+def sign_data(uri, data, ssecurity):
+    if not isinstance(data, str):
+        data = json.dumps(data)
+    nonce = gen_nonce()
+    signed_nonce = gen_signed_nonce(ssecurity, nonce)
+    signature = gen_signature(uri, signed_nonce, nonce, data)
+    return {'_nonce': nonce, 'data': data, 'signature': signature}
 
 
 class MiIOCom:
@@ -11,33 +49,12 @@ class MiIOCom:
         self.auth = auth
         self.server = 'https://' + ('' if region is None or region == 'cn' else region + '.') + 'api.io.mi.com/app'
 
-    async def request(self, uri, data, relogin=True):
-        if self.auth.token is not None or await self.auth.login():  # Ensure login
-            _LOGGER.info(f"{uri} {data}")
-            r = await self.auth.session.post(self.server + uri, cookies={
-                'userId': self.auth.token['userId'],
-                'serviceToken': self.auth.token['serviceToken'],
-                # 'locale': 'en_US'
-            }, headers={
-                'User-Agent': self.auth.user_agent,
-                'x-xiaomi-protocal-flag-cli': 'PROTOCAL-HTTP2'
-            }, data=self.auth.sign(uri, data), timeout=10)
-            resp = await r.json(content_type=None)
-            code = resp['code']
-            if code == 0:
-                result = resp['result']
-                if result is not None:
-                    # _LOGGER.debug(f"{result}")
-                    return result
-            elif code == 2 and relogin:
-                _LOGGER.debug(f"Auth error on request {uri}, relogin...")
-                self.token = None  # Auth error, reset login
-                return self.request(uri, data, False)
-        else:
-            resp = "Login failed"
-        error = f"Error {uri}: {resp}"
-        _LOGGER.error(error)
-        raise Exception(error)
+    async def request(self, uri, data):
+        def prepare_data(cookies):
+            cookies['PassportDeviceId'] = self.auth.token['deviceId']
+            return sign_data(uri, data, self.auth.token['ssecurity'])
+        headers = {'User-Agent': 'iOS-14.4-6.0.103-iPhone12,3--D7744744F7AF32F0544445285880DD63E47D9BE9-8816080-84A3F44E137B71AE-iPhone', 'x-xiaomi-protocal-flag-cli': 'PROTOCAL-HTTP2'}
+        return (await self.auth.request('xiaomiio', self.server + uri, prepare_data, headers))['result']
 
     async def miot_request(self, cmd, params):
         return await self.request('/miotspec/' + cmd, {'params': params})

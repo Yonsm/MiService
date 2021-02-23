@@ -1,130 +1,131 @@
 import base64
 import hashlib
-import hmac
 import json
 import logging
 import os
 import random
 import string
-import time
+from urllib import parse
 
 _LOGGER = logging.getLogger(__name__)
 
-USER_AGENT = "Android-7.1.1-1.0.0-ONEPLUS A3010-136-%s APP/xiaomi.smarthome APPV/62830"
-
 
 def get_random(length):
-    seq = string.ascii_uppercase + string.digits
-    return ''.join((random.choice(seq) for _ in range(length)))
+    return ''.join(random.sample(string.ascii_letters + string.digits, length))
 
 
-def gen_nonce():
-    """Time based nonce."""
-    nonce = os.urandom(8) + int(time.time() / 60).to_bytes(4, 'big')
-    return base64.b64encode(nonce).decode()
+class MiTokenStore:
 
+    def __init__(self, token_path):
+        self.token_path = token_path
 
-def gen_signed_nonce(ssecret, nonce):
-    """Nonce signed with ssecret."""
-    m = hashlib.sha256()
-    m.update(base64.b64decode(ssecret))
-    m.update(base64.b64decode(nonce))
-    return base64.b64encode(m.digest()).decode()
+    def load_token(self):
+        try:
+            with open(self.token_path) as f:
+                return json.load(f)
+        except Exception:
+            _LOGGER.exception(f"Exception on load token from {self.token_path}")
+        return None
 
-
-def gen_signature(url, signed_nonce, nonce, data):
-    """Request signature based on url, signed_nonce, nonce and data."""
-    sign = '&'.join([url, signed_nonce, nonce, 'data=' + data])
-    signature = hmac.new(key=base64.b64decode(signed_nonce),
-                         msg=sign.encode(),
-                         digestmod=hashlib.sha256).digest()
-    return base64.b64encode(signature).decode()
+    def save_token(self, token=None):
+        if token:
+            try:
+                with open(self.token_path, 'w') as f:
+                    json.dump(token, f, indent=2)
+            except Exception:
+                _LOGGER.exception(f"Exception on save token to {self.token_path}")
+        elif os.path.isfile(self.token_path):
+            os.remove(self.token_path)
 
 
 class MiAuth:
 
-    def __init__(self, session, username, password, token_path='.miauth'):
+    def __init__(self, session, username, password, token_store='.mi.token'):
         self.session = session
         self.username = username
         self.password = password
-        self.token_path = token_path
-        self.token = self.load_token()
+        self.token_store = MiTokenStore(token_store) if isinstance(token_store, str) else token_store
+        self.token = token_store is not None and self.token_store.load_token()
 
-    def load_token(self):
-        if self.token_path and os.path.isfile(self.token_path):
-            try:
-                with open(self.token_path) as f:
-                    return json.load(f)
-            except Exception:
-                _LOGGER.exception(f"Exception on load token from {self.token_path}")
-        return None
-
-    def save_token(self):
-        if self.token_path:
-            if self.token:
-                try:
-                    with open(self.token_path, 'w') as f:
-                        json.dump(self.token, f)
-                except Exception:
-                    _LOGGER.exception(f"Exception on save token to {self.token_path}")
-            elif os.path.isfile(self.token_path):
-                os.remove(self.token_path)
-
-    @property
-    def user_agent(self):
-        return USER_AGENT % self.token['deviceId']
-
-    async def login(self):
-        self.token = {'deviceId': get_random(16)}
+    async def login(self, sid):
+        if not self.token:
+            self.token = {'deviceId': get_random(16).upper()}
         try:
-            payload = await self._login1()
-            data = await self._login2(payload)
-            location = data['location']
-            if not location:
-                return False
-            self.token['userId'] = data['userId']
-            self.token['ssecurity'] = data['ssecurity']
-            self.token['serviceToken'] = await self._login3(location)
+            resp = await self._serviceLogin(f'serviceLogin?sid={sid}&_json=true')
+            if resp['code'] != 0:
+                data = {
+                    '_json': 'true',
+                    'qs': resp['qs'],
+                    'sid': resp['sid'],
+                    '_sign': resp['_sign'],
+                    'callback': resp['callback'],
+                    'user': self.username,
+                    'hash': hashlib.md5(self.password.encode()).hexdigest().upper()
+                }
+                resp = await self._serviceLogin('serviceLoginAuth2', data)
+                if resp['code'] != 0:
+                    raise Exception(resp)
+                self.token['userId'] = resp['userId']
+                self.token['ssecurity'] = resp['ssecurity']
+                self.token['passToken'] = resp['passToken']
+
+            serviceToken = await self._securityTokenService(resp['location'], resp['nonce'], resp['ssecurity'])
+            self.token[sid] = serviceToken
+            if self.token_store:
+                self.token_store.save_token(self.token)
+            return True
+
         except Exception as e:
-            _LOGGER.exception(f"Exception on login {self.username}: {e}")
             self.token = None
+            if self.token_store:
+                self.token_store.save_token()
+            _LOGGER.exception(f"Exception on login {self.username}: {e}")
+            return False
 
-        self.save_token()
-        return self.token
-
-    async def _login1(self):
-        r = await self.session.get('https://account.xiaomi.com/pass/serviceLogin',
-                                   cookies={'sdkVersion': '3.8.6', 'deviceId': self.token['deviceId']},
-                                   headers={'User-Agent': self.user_agent},
-                                   params={'sid': 'xiaomiio', '_json': 'true'})
+    async def _serviceLogin(self, uri, data=None):
+        headers = {'User-Agent': 'APP/com.xiaomi.mihome APPV/6.0.103 iosPassportSDK/3.9.0 iOS/14.4 miHSTS'}
+        cookies = {'sdkVersion': '3.9', 'deviceId': self.token['deviceId']}
+        if 'passToken' in self.token:
+            cookies['userId'] = self.token['userId']
+            cookies['passToken'] = self.token['passToken']
+        url = 'https://account.xiaomi.com/pass/' + uri
+        r = await self.session.request('GET' if data is None else 'POST', url, data=data, cookies=cookies, headers=headers)
         raw = await r.read()
         resp = json.loads(raw[11:])
-        _LOGGER.debug(f"MiAuth step1: %s", resp)
-        return {k: v for k, v in resp.items() if k in ('sid', 'qs', 'callback', '_sign')}
-
-    async def _login2(self, payload):
-        payload['user'] = self.username
-        payload['hash'] = hashlib.md5(self.password.encode()).hexdigest().upper()
-        r = await self.session.post('https://account.xiaomi.com/pass/serviceLoginAuth2',
-                                    cookies={'sdkVersion': '3.8.6', 'deviceId': self.token['deviceId']},
-                                    data=payload,
-                                    headers={'User-Agent': self.user_agent},
-                                    params={'_json': 'true'})
-        raw = await r.read()
-        resp = json.loads(raw[11:])
-        _LOGGER.debug(f"MiAuth step2: %s", resp)
+        _LOGGER.debug("%s: %s", uri, resp)
         return resp
 
-    async def _login3(self, location):
-        r = await self.session.get(location, headers={'User-Agent': self.user_agent})
+    async def _securityTokenService(self, location, nonce, ssecurity):
+        nsec = 'nonce=' + str(nonce) + '&' + ssecurity
+        clientSign = base64.b64encode(hashlib.sha1(nsec.encode()).digest()).decode()
+        r = await self.session.get(location + '&clientSign=' + parse.quote(clientSign))
         serviceToken = r.cookies['serviceToken'].value
-        _LOGGER.info(f"MiAuth step3: %s", serviceToken)
+        if not serviceToken:
+            raise Exception(await r.text())
         return serviceToken
 
-    def sign(self, uri, data):
-        if not isinstance(data, str):
-            data = json.dumps(data)
-        nonce = gen_nonce()
-        signed_nonce = gen_signed_nonce(self.token['ssecurity'], nonce)
-        signature = gen_signature(uri, signed_nonce, nonce, data)
-        return {'signature': signature, '_nonce': nonce, 'data': data}
+    async def request(self, sid, url, data, headers, relogin=True):
+        if (self.token and sid in self.token) or await self.login(sid):  # Ensure login
+            cookies = {'userId': self.token['userId'], 'serviceToken': self.token[sid]}
+            if callable(data):
+                data = data(cookies)
+            _LOGGER.info(f"{url} {data}")
+            r = await self.session.request('GET' if data is None else 'POST', url, data=data, cookies=cookies, headers=headers)
+            status = r.status
+            if status == 200 or status == 401:
+                if status == 200:
+                    resp = await r.json(content_type=None)
+                    code = resp['code']
+                    if code == 0:
+                        return resp
+                if relogin and status == 401 or 'auth' in resp.get('message', '').lower():
+                    _LOGGER.warn(f"Auth error on request {url}, relogin...")
+                    self.token = None  # Auth error, reset login
+                    return await self.request(sid, url, data, headers, False)
+            else:
+                resp = await r.text()
+        else:
+            resp = "Login failed"
+        error = f"Error {url}: {resp}"
+        _LOGGER.error(error)
+        raise Exception(error)
