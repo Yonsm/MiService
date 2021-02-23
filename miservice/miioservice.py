@@ -1,11 +1,11 @@
+import os
+import time
 import base64
 import hashlib
 import hmac
 import json
 import logging
-from micom import MiCom
-import os
-import time
+from . import MiBaseService
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,16 +44,16 @@ def sign_data(uri, data, ssecurity):
     return {'_nonce': nonce, 'data': data, 'signature': signature}
 
 
-class MiIOCom(MiCom):
+class MiIOService(MiBaseService):
 
-    def __init__(self, auth, region=None):
-        self.auth = auth
+    def __init__(self, account, region=None):
+        super.__init__(account, region)
         self.server = 'https://' + ('' if region is None or region == 'cn' else region + '.') + 'api.io.mi.com/app'
 
     async def miio_request(self, uri, data):
-        def prepare_data(cookies):
-            cookies['PassportDeviceId'] = self.auth.token['deviceId']
-            return sign_data(uri, data, self.auth.token['ssecurity'])
+        def prepare_data(token, cookies):
+            cookies['PassportDeviceId'] = token['deviceId']
+            return sign_data(uri, data, token['ssecurity'])
         headers = {'User-Agent': 'iOS-14.4-6.0.103-iPhone12,3--D7744744F7AF32F0544445285880DD63E47D9BE9-8816080-84A3F44E137B71AE-iPhone', 'x-xiaomi-protocal-flag-cli': 'PROTOCAL-HTTP2'}
         return (await self.request('xiaomiio', self.server + uri, prepare_data, headers))['result']
 

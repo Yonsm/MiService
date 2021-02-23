@@ -1,23 +1,29 @@
-
+import random
+import string
 import logging
-from miauth import MiAuth
+from .miaccount import MiAccount
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class MiCom:
+def get_random(length):
+    return ''.join(random.sample(string.ascii_letters + string.digits, length))
 
-    def __init__(self, auth: MiAuth):
-        self.auth = auth
+
+class MiBaseService:
+
+    def __init__(self, account: MiAccount):
+        self.account = account
 
     async def request(self, sid, url, data, headers, relogin=True):
-        if (self.auth.token and sid in self.auth.token) or await self.auth.login(sid):  # Ensure login
-            cookies = {'userId': self.auth.token['userId'], 'serviceToken': self.auth.token[sid]}
+        token = await self.account.get_token(sid)
+        if token:  # Ensure login
+            cookies = {'userId': token['userId'], 'serviceToken': token[sid]}
             if callable(data):
-                data = data(cookies)
+                data = data(token, cookies)
             _LOGGER.info(f"{url} {data}")
             method = 'GET' if data is None else 'POST'
-            r = await self.auth.session.request(method, url, data=data, cookies=cookies, headers=headers)
+            r = await self.account.session.request(method, url, data=data, cookies=cookies, headers=headers)
             status = r.status
             if status == 200:
                 resp = await r.json(content_type=None)
@@ -28,7 +34,7 @@ class MiCom:
                     status = 401
             else:
                 resp = await r.text()
-            if  status == 401 and relogin:
+            if status == 401 and relogin:
                 _LOGGER.warn(f"Auth error on request {url} {resp}, relogin...")
                 self.token = None  # Auth error, reset login
                 return await self.request(sid, url, data, headers, False)

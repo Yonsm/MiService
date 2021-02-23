@@ -1,6 +1,6 @@
 
 import json
-from miiocom import MiIOCom
+from .miioservice import MiIOService
 
 
 def twins_split(string, sep, default=None):
@@ -23,7 +23,7 @@ def string_or_value(string):
     return string_to_value(string[1:]) if string[0] == '#' else string
 
 
-def miio_cmd_help(did, prefix='?'):
+def miio_command_help(did, prefix='?'):
     quote = '' if prefix == '?' else "'"
     return f'\
 Get Props: {prefix}<siid[-piid]>[,...]\n\
@@ -46,26 +46,26 @@ MiIO Spec: {prefix}spec [model_keyword|type_urn]\n\
            {prefix}spec urn:miot-spec-v2:device:speaker:0000A015:xiaomi-lx04:1\n\
 '
 
-async def miio_cmd(miiocom: MiIOCom, did, text, prefix='?'):
+async def miio_command(service: MiIOService, did, text, prefix='?'):
 
     cmd, arg = twins_split(text, ' ')
 
     if cmd.startswith('/'):
-        return await miiocom.miio_request(cmd, arg)
+        return await service.miio_request(cmd, arg)
 
     if cmd.startswith('prop') or cmd == 'action':
-        return await miiocom.miot_request(cmd, json.loads(arg) if arg else None)
+        return await service.miot_request(cmd, json.loads(arg) if arg else None)
 
     argv = arg.split(' ') if arg else []
     argc = len(argv)
     if cmd == 'list':
-        return await miiocom.device_list(argc > 0 and argv[0], argc > 1 and string_to_value(argv[1]), argc > 2 and argv[2])
+        return await service.device_list(argc > 0 and argv[0], argc > 1 and string_to_value(argv[1]), argc > 2 and argv[2])
 
     if cmd == 'spec':
-        return await miiocom.miot_spec(argv[0] if argc > 0 else None)
+        return await service.miot_spec(argv[0] if argc > 0 else None)
 
     if not did or not cmd or cmd == '?' or cmd == '？' or cmd == 'help' or cmd == '-h' or cmd == '--help':
-        return miio_cmd_help(did, prefix)
+        return miio_command_help(did, prefix)
 
     props = []
     isget = False
@@ -84,6 +84,6 @@ async def miio_cmd(miiocom: MiIOCom, did, text, prefix='?'):
 
     if argc > 0:
         args = [string_or_value(a) for a in argv]
-        return await miiocom.miot_action(did, props[0][0], props[0][1], args)
+        return await service.miot_action(did, props[0][0], props[0][1], args)
 
-    return await (miiocom.miot_get_props if isget else miiocom.miot_set_props)(did, props)
+    return await (service.miot_get_props if isget else service.miot_set_props)(did, props)

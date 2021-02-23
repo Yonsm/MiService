@@ -6,10 +6,10 @@ import json
 import os
 import sys
 
-from miauth import MiAuth, _LOGGER as _LOGGER1
-from miiocom import MiIOCom, _LOGGER as _LOGGER2
-from minacom import MiNACom
-from miiocmd import miio_cmd, miio_cmd_help
+from .miaccount import MiAccount, _LOGGER as _LOGGER1
+from .minaservice import MiNAService
+from .miioservice import MiIOService, _LOGGER as _LOGGER2
+from .miiocommand import miio_command, miio_command_help
 
 
 def usage(did):
@@ -17,20 +17,20 @@ def usage(did):
     print("           export MI_USER=<username>")
     print("           export MI_PASS=<password>")
     print("           export MIIO_DID=<deviceId>\n")
-    print(miio_cmd_help(did, sys.argv[0] + ' '))
+    print(miio_command_help(did, sys.argv[0] + ' '))
 
 
 async def main(username, password, did, text):
     async with ClientSession() as session:
-        auth = MiAuth(session, username, password)
+        account = MiAccount(session, username, password)
         if text.startswith('mina'):
-            com = MiNACom(auth)
-            result = await com.device_list()
+            service = MiNAService(account)
+            result = await service.device_list()
             if len(text) > 4:
-                await com.send_message(result, -1, text[4:])
+                await service.send_message(result, -1, text[4:])
         else:
-            com = MiIOCom(auth)
-            result = await miio_cmd(com, did, text, sys.argv[0] + ' ')
+            service = MiIOService(account)
+            result = await miio_command(service, did, text, sys.argv[0] + ' ')
         if not isinstance(result, str):
             result = json.dumps(result, indent=2, ensure_ascii=False)
         print(result)

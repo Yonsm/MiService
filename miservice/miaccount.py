@@ -3,16 +3,11 @@ import hashlib
 import json
 import logging
 import os
-import random
-import string
 from urllib import parse
 from aiohttp import ClientSession
+from . import get_random
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def get_random(length):
-    return ''.join(random.sample(string.ascii_letters + string.digits, length))
 
 
 class MiTokenStore:
@@ -39,7 +34,7 @@ class MiTokenStore:
             os.remove(self.token_path)
 
 
-class MiAuth:
+class MiAccount:
 
     def __init__(self, session: ClientSession, username, password, token_store='.mi.token'):
         self.session = session
@@ -48,8 +43,11 @@ class MiAuth:
         self.token_store = MiTokenStore(token_store) if isinstance(token_store, str) else token_store
         self.token = token_store is not None and self.token_store.load_token()
 
-    async def login(self, sid):
-        if not self.token:
+    async def get_token(self, sid):
+        if self.token:
+            if sid in self.token:
+                 return self.token
+        else:
             self.token = {'deviceId': get_random(16).upper()}
         try:
             resp = await self._serviceLogin(f'serviceLogin?sid={sid}&_json=true')
@@ -74,14 +72,14 @@ class MiAuth:
             self.token[sid] = serviceToken
             if self.token_store:
                 self.token_store.save_token(self.token)
-            return True
+            return self.token
 
         except Exception as e:
             self.token = None
             if self.token_store:
                 self.token_store.save_token()
             _LOGGER.exception(f"Exception on login {self.username}: {e}")
-            return False
+            return None
 
     async def _serviceLogin(self, uri, data=None):
         headers = {'User-Agent': 'APP/com.xiaomi.mihome APPV/6.0.103 iosPassportSDK/3.9.0 iOS/14.4 miHSTS'}
