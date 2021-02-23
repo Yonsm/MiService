@@ -1,4 +1,4 @@
-# MiCom
+# MiCloud
 XiaoMi IoT Cloud API for mi.com
 
 MiCloud：小米网账号、MiIO/MiOT/MiNA 云服务 API
