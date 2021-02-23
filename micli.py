@@ -8,6 +8,7 @@ import sys
 
 from miauth import MiAuth, _LOGGER as _LOGGER1
 from miiocom import MiIOCom, _LOGGER as _LOGGER2
+from minacom import MiNACom
 from miiocmd import miio_cmd, miio_cmd_help
 
 
@@ -21,9 +22,15 @@ def usage(did):
 
 async def main(username, password, did, text):
     async with ClientSession() as session:
-        miauth = MiAuth(session, username, password)
-        miiocom = MiIOCom(miauth)
-        result = await miio_cmd(miiocom, did, text, sys.argv[0] + ' ')
+        auth = MiAuth(session, username, password)
+        if text.startswith('mina'):
+            com = MiNACom(auth)
+            result = await com.device_list()
+            if len(text) > 4:
+                await com.send_message(result, -1, text[4:])
+        else:
+            com = MiIOCom(auth)
+            result = await miio_cmd(com, did, text, sys.argv[0] + ' ')
         if not isinstance(result, str):
             result = json.dumps(result, indent=2, ensure_ascii=False)
         print(result)
