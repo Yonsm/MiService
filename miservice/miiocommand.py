@@ -34,7 +34,7 @@ Do Action: {prefix}<siid[-piid]> <arg1> [...] \n\
            {prefix}5 Hello\n\
            {prefix}5-4 Hello #1\n\n\
 Call MIoT: {prefix}<cmd=prop/get|/prop/set|action> <params>\n\
-           {prefix}action {quote}{{"did":"{did or "267090026"}","siid":5,"aiid":1,"in":["您好"]}}{quote}\n\n\
+           {prefix}action {quote}{{"did":"{did or "267090026"}","siid":5,"aiid":1,"in":["Hello"]}}{quote}\n\n\
 Call MiIO: {prefix}/<uri> <data>\n\
            {prefix}/home/device_list {quote}{{"getVirtualModel":false,"getHuamiDevices":1}}{quote}\n\n\
 Devs List: {prefix}list [name=full|name_keyword] [getVirtualModel=false|true] [getHuamiDevices=0|1]\n\

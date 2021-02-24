@@ -84,13 +84,13 @@ class MiIOService:
 
     async def miot_spec(self, type=None):
         if not type or not type.startswith('urn'):
-            async with self.auth.session.get('http://miot-spec.org/miot-spec-v2/instances?status=all') as r:
+            async with self.account.session.get('http://miot-spec.org/miot-spec-v2/instances?status=all') as r:
                 result = await r.json()
             result = {i['model']: i['type'] for i in result['instances'] if not type or type in i['model']}
             if len(result) != 1:
                 return result
             type = list(result.values())[0]
-        async with self.auth.session.get('http://miot-spec.org/miot-spec-v2/instance?type=' + type) as r:
+        async with self.account.session.get('http://miot-spec.org/miot-spec-v2/instance?type=' + type) as r:
             return await r.json()
 
     async def device_list(self, name=None, getVirtualModel=False, getHuamiDevices=0):
