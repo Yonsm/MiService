@@ -4,18 +4,19 @@ import os
 import sys
 
 if len(sys.argv) == 1:
-    os.system('rm -rf dist/*')
     os.system('%s sdist' % sys.argv[0])
     os.system('twine upload dist/*')
+    os.system('rm -rf dist *.egg-info')
     exit(0)
 
 
+import time
 from pathlib import Path
 from setuptools import setup
 
 setup(
     name='miservice',
-    version='1.0.2',
+    version=time.strftime("%Y.%m.%d"),
     author='Yonsm',
     author_email='Yonsm@qq.com',
     url='https://github.com/Yonsm/MiService',
