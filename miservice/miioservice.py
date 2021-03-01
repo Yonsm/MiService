@@ -55,7 +55,7 @@ class MiIOService:
             cookies['PassportDeviceId'] = token['deviceId']
             return sign_data(uri, data, token['xiaomiio'][0])
         headers = {'User-Agent': 'iOS-14.4-6.0.103-iPhone12,3--D7744744F7AF32F0544445285880DD63E47D9BE9-8816080-84A3F44E137B71AE-iPhone', 'x-xiaomi-protocal-flag-cli': 'PROTOCAL-HTTP2'}
-        return (await self.account.request('xiaomiio', self.server + uri, prepare_data, headers))['result']
+        return (await self.account.mi_request('xiaomiio', self.server + uri, prepare_data, headers))['result']
 
     async def miot_request(self, cmd, params):
         return await self.miio_request('/miotspec/' + cmd, {'params': params})

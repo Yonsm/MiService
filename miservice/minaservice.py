@@ -17,7 +17,7 @@ class MiNAService:
         else:
             uri += '&requestId=' + requestId
         headers = {'User-Agent': 'MiHome/6.0.103 (com.xiaomi.mihome; build:6.0.103.1; iOS 14.4.0) Alamofire/6.0.103 MICO/iOSApp/appStore/6.0.103'}
-        return await self.account.request('micoapi', 'https://api2.mina.mi.com' + uri, data, headers)
+        return await self.account.mi_request('micoapi', 'https://api2.mina.mi.com' + uri, data, headers)
 
     async def device_list(self, master=0):
         result = await self.mina_request('/admin/v2/device_list?master=' + str(master))

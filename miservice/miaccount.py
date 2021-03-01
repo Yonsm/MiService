@@ -91,8 +91,8 @@ class MiAccount:
             cookies['userId'] = self.token['userId']
             cookies['passToken'] = self.token['passToken']
         url = 'https://account.xiaomi.com/pass/' + uri
-        r = await self.session.request('GET' if data is None else 'POST', url, data=data, cookies=cookies, headers=headers)
-        raw = await r.read()
+        async with self.session.request('GET' if data is None else 'POST', url, data=data, cookies=cookies, headers=headers) as r:
+            raw = await r.read()
         resp = json.loads(raw[11:])
         _LOGGER.debug("%s: %s", uri, resp)
         return resp
@@ -100,29 +100,29 @@ class MiAccount:
     async def _securityTokenService(self, location, nonce, ssecurity):
         nsec = 'nonce=' + str(nonce) + '&' + ssecurity
         clientSign = base64.b64encode(hashlib.sha1(nsec.encode()).digest()).decode()
-        r = await self.session.get(location + '&clientSign=' + parse.quote(clientSign))
-        serviceToken = r.cookies['serviceToken'].value
-        if not serviceToken:
-            raise Exception(await r.text())
+        async with self.session.get(location + '&clientSign=' + parse.quote(clientSign)) as r:
+            serviceToken = r.cookies['serviceToken'].value
+            if not serviceToken:
+                raise Exception(await r.text())
         return serviceToken
 
-    async def request(self, sid, url, data, headers, relogin=True):
+    async def mi_request(self, sid, url, data, headers, relogin=True):
         if (self.token and sid in self.token) or await self.login(sid):  # Ensure login
             _LOGGER.info(f"{url} {data}")
             cookies = {'userId': self.token['userId'], 'serviceToken': self.token[sid][1]}
             content = data(self.token, cookies) if callable(data) else data
             method = 'GET' if data is None else 'POST'
-            r = await self.session.request(method, url, data=content, cookies=cookies, headers=headers)
-            status = r.status
-            if status == 200:
-                resp = await r.json(content_type=None)
-                code = resp['code']
-                if code == 0:
-                    return resp
-                if 'auth' in resp.get('message', '').lower():
-                    status = 401
-            else:
-                resp = await r.text()
+            async with self.session.request(method, url, data=content, cookies=cookies, headers=headers) as r:
+                status = r.status
+                if status == 200:
+                    resp = await r.json(content_type=None)
+                    code = resp['code']
+                    if code == 0:
+                        return resp
+                    if 'auth' in resp.get('message', '').lower():
+                        status = 401
+                else:
+                    resp = await r.text()
             if status == 401 and relogin:
                 _LOGGER.warn(f"Auth error on request {url} {resp}, relogin...")
                 self.token = None  # Auth error, reset login
