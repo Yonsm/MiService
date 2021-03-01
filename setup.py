@@ -16,11 +16,12 @@ from setuptools import setup
 
 setup(
     name='miservice',
+    description='XiaoMi Cloud Service',
     version=time.strftime("%Y.%m.%d"),
+    license='MIT',
     author='Yonsm',
     author_email='Yonsm@qq.com',
     url='https://github.com/Yonsm/MiService',
-    description='XiaoMi Cloud Service',
     long_description=Path('README.md').read_text(),
     long_description_content_type='text/markdown',
     packages=['miservice'],
