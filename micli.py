@@ -46,7 +46,7 @@ if __name__ == '__main__':
         argv = argv[1:]
     else:
         level = logging.WARNING
-    if argc > 1 and username and password:
+    if argc > 1 and ((username and password) or argv[1] == 'spec'):
         if level != logging.NOTSET:
             _LOGGER = logging.getLogger('miservice')
             _LOGGER.setLevel(level)
