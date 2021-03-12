@@ -51,8 +51,6 @@ if __name__ == '__main__':
             _LOGGER = logging.getLogger('miservice')
             _LOGGER.setLevel(level)
             _LOGGER.addHandler(logging.StreamHandler())
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(main(username, password, did, ' '.join(argv[1:])))
-        loop.close()
+        asyncio.run(main(username, password, did, ' '.join(argv[1:])))
     else:
         usage(did)

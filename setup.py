@@ -26,7 +26,7 @@ setup(
     long_description_content_type='text/markdown',
     packages=['miservice'],
     scripts=['micli.py'],
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     install_requires=['aiohttp'],
     classifiers=[
         "Programming Language :: Python :: 3",
