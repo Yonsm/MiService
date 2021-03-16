@@ -28,7 +28,7 @@ MiService：XiaoMi Cloud Service
 Usage: The following variables must be set:
            export MI_USER=<username>
            export MI_PASS=<password>
-           export MIIO_DID=<deviceId>
+           export MI_DID=<deviceId>
 
 Get Props: micli.py <siid[-piid]>[,...]
            micli.py 1,1-2,1-3,1-4,2-1,2-2,3
@@ -77,7 +77,7 @@ micli.py list
 为了后续操作，请设置 Device ID（来自上面这条命令的结果）。
 
 ```
-export MIIO_DID=<deviceId>
+export MI_DID=<deviceId>
 ```
 
 ### 4. 查询设备的接口文档

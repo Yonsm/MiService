@@ -10,25 +10,26 @@ from pathlib import Path
 from miservice import MiAccount, MiNAService, MiIOService, miio_command, miio_command_help
 
 
-def usage(did):
+def usage():
     print("Usage: The following variables must be set:")
     print("           export MI_USER=<username>")
     print("           export MI_PASS=<password>")
-    print("           export MIIO_DID=<deviceId>\n")
-    print(miio_command_help(did, sys.argv[0] + ' '))
+    print("           export MI_DID=<deviceId>\n")
+    print(miio_command_help(prefix=sys.argv[0] + ' '))
 
 
-async def main(username, password, did, text):
+async def main(args):
     async with ClientSession() as session:
-        account = MiAccount(session, username, password, os.path.join(str(Path.home()), '.mi.token'))
-        if text.startswith('mina'):
+        env = os.environ
+        account = MiAccount(session, env.get('MI_USER'), env.get('MI_PASS'), os.path.join(str(Path.home()), '.mi.token'))
+        if args.startswith('mina'):
             service = MiNAService(account)
             result = await service.device_list()
-            if len(text) > 4:
-                await service.send_message(result, -1, text[4:])
+            if len(args) > 4:
+                await service.send_message(result, -1, args[4:])
         else:
             service = MiIOService(account)
-            result = await miio_command(service, did, text, sys.argv[0] + ' ')
+            result = await miio_command(service, env.get('MI_DID'), args, sys.argv[0] + ' ')
         if not isinstance(result, str):
             result = json.dumps(result, indent=2, ensure_ascii=False)
         print(result)
@@ -37,20 +38,18 @@ async def main(username, password, did, text):
 if __name__ == '__main__':
     argv = sys.argv
     argc = len(argv)
-    username = os.environ.get('MI_USER')
-    password = os.environ.get('MI_PASS')
-    did = os.environ.get('MIIO_DID')
     if argc > 1 and argv[1].startswith('-v'):
+        argi = 2
         index = int(argv[1][2]) if len(argv[1]) > 2 else 4
         level = [logging.NOTSET, logging.FATAL, logging.ERROR, logging.WARN, logging.INFO, logging.DEBUG][index]
-        argv = argv[1:]
     else:
+        argi = 1
         level = logging.WARNING
-    if argc > 1 and ((username and password) or argv[1] == 'spec'):
+    if argc > argi:
         if level != logging.NOTSET:
             _LOGGER = logging.getLogger('miservice')
             _LOGGER.setLevel(level)
             _LOGGER.addHandler(logging.StreamHandler())
-        asyncio.run(main(username, password, did, ' '.join(argv[1:])))
+        asyncio.run(main(' '.join(argv[argi:])))
     else:
-        usage(did)
+        usage()

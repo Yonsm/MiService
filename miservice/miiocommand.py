@@ -23,7 +23,7 @@ def string_or_value(string):
     return string_to_value(string[1:]) if string[0] == '#' else string
 
 
-def miio_command_help(did, prefix='?'):
+def miio_command_help(did=None, prefix='?'):
     quote = '' if prefix == '?' else "'"
     return f'\
 Get Props: {prefix}<siid[-piid]>[,...]\n\
