@@ -39,7 +39,7 @@ Call MiIO: {prefix}/<uri> <data>\n\
            {prefix}/home/device_list {quote}{{"getVirtualModel":false,"getHuamiDevices":1}}{quote}\n\n\
 Devs List: {prefix}list [name=full|name_keyword] [getVirtualModel=false|true] [getHuamiDevices=0|1]\n\
            {prefix}list Light true 0\n\n\
-MiIO Spec: {prefix}spec [model_keyword|type_urn]\n\
+MiIO Spec: {prefix}spec [model_keyword|type_urn] [format=text|python|json]\n\
            {prefix}spec\n\
            {prefix}spec speaker\n\
            {prefix}spec xiaomi.wifispeaker.lx04\n\
@@ -63,7 +63,7 @@ async def miio_command(service: MiIOService, did, text, prefix='?'):
         return await service.device_list(argc > 0 and argv[0], argc > 1 and string_to_value(argv[1]), argc > 2 and argv[2])
 
     if cmd == 'spec':
-        return await service.miot_spec(argv[0] if argc > 0 else None)
+        return await service.miot_spec(argc > 0 and argv[0], argc > 1 and argv[1])
 
     if not did or not cmd or cmd == '?' or cmd == '？' or cmd == 'help' or cmd == '-h' or cmd == '--help':
         return miio_command_help(did, prefix)

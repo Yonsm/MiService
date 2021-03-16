@@ -82,7 +82,7 @@ class MiIOService:
         result = await self.miot_request('action', {'did': did, 'siid': siid, 'aiid': aiid, 'in': args})
         return result
 
-    async def miot_spec(self, type=None):
+    async def miot_spec(self, type=None, format=None):
         if not type or not type.startswith('urn'):
             async with self.account.session.get('http://miot-spec.org/miot-spec-v2/instances?status=all') as r:
                 result = await r.json()
@@ -90,8 +90,36 @@ class MiIOService:
             if len(result) != 1:
                 return result
             type = list(result.values())[0]
-        async with self.account.session.get('http://miot-spec.org/miot-spec-v2/instance?type=' + type) as r:
-            return await r.json()
+
+        url = 'http://miot-spec.org/miot-spec-v2/instance?type=' + type
+        async with self.account.session.get(url) as r:
+            result = await r.json()
+
+        if format != 'json':
+            services = result['services']
+            result = '# ' + url + '\n'
+            STR_EXP = '%s%s = %s\n'
+            STR_EXP2 = '%s%s = %s%s\n'
+            STR_SRV, STR_PROP, STR_VALUE, STR_ACTION = ('SRV_', 'PROP_', 'VALUE_{}_', 'ACTION_') if format == 'python' else ('', '  ', '    ', '  ')
+            for s in services:
+                desc = s['description'].replace(' ', '_')
+                result += STR_EXP % (STR_SRV, desc, s['iid'])
+                for p in s.get('properties', []):
+                    desc = p['description'].replace(' ', '_')
+                    comment = ''.join([' #' + k for k, v in [(p['format'], 'string'), (''.join([a[0] for a in p['access']]), 'r')] if k != v])
+                    result += STR_EXP2 % (STR_PROP, desc, p['iid'], comment)
+                    if 'value-range' in p:
+                        valuer = p['value-range']
+                        length = min(3, len(valuer))
+                        result += ''.join([STR_EXP % (STR_VALUE.format(desc), ['MIN', 'MAX', 'STEP'][i], valuer[i]) for i in range(length) if i != 2 or valuer[i] != 1])
+                    elif 'value-list' in p:
+                        result += ''.join([STR_EXP % (STR_VALUE.format(desc), i['description'].replace(' ', '_'), i['value']) for i in p['value-list']])
+                for a in s.get('actions', []):
+                    desc = a['description'].replace(' ', '_')
+                    comment = ''.join([f" #{io}={a[io]}" for io in ['in', 'out'] if a[io]])
+                    result += STR_EXP2 % (STR_ACTION, desc, a['iid'], comment)
+                result += '\n'
+        return result
 
     async def device_list(self, name=None, getVirtualModel=False, getHuamiDevices=0):
         result = await self.miio_request('/home/device_list', {'getVirtualModel': bool(getVirtualModel), 'getHuamiDevices': int(getHuamiDevices)})
