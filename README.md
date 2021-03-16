@@ -34,7 +34,8 @@ Get Props: micli.py <siid[-piid]>[,...]
            micli.py 1,1-2,1-3,1-4,2-1,2-2,3
 Set Props: micli.py <siid[-piid]=[#]value>[,...]
            micli.py 2=#60,2-2=#false,3=test
-Do Action: micli.py <siid[-piid]> <arg1> [...] 
+Do Action: micli.py <siid[-piid]> <arg1|#NA> [...] 
+           micli.py 2 #NA
            micli.py 5 Hello
            micli.py 5-4 Hello #1
 

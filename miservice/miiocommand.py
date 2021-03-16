@@ -30,7 +30,8 @@ Get Props: {prefix}<siid[-piid]>[,...]\n\
            {prefix}1,1-2,1-3,1-4,2-1,2-2,3\n\
 Set Props: {prefix}<siid[-piid]=[#]value>[,...]\n\
            {prefix}2=#60,2-2=#false,3=test\n\
-Do Action: {prefix}<siid[-piid]> <arg1> [...] \n\
+Do Action: {prefix}<siid[-piid]> <arg1|#NA> [...] \n\
+           {prefix}2 #NA\n\
            {prefix}5 Hello\n\
            {prefix}5-4 Hello #1\n\n\
 Call MIoT: {prefix}<cmd=prop/get|/prop/set|action> <params>\n\
@@ -84,7 +85,7 @@ async def miio_command(service: MiIOService, did, text, prefix='?'):
         props.append(prop)
 
     if argc > 0:
-        args = [string_or_value(a) for a in argv]
+        args = [string_or_value(a) for a in argv] if arg != '#NA' else []
         return await service.miot_action(did, props[0][0], props[0][1], args)
 
     return await (service.miot_get_props if isget else service.miot_set_props)(did, props)
