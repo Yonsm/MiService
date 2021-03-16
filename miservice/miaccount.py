@@ -26,7 +26,7 @@ class MiTokenStore:
                 with open(self.token_path) as f:
                     return json.load(f)
             except Exception:
-                _LOGGER.exception(f"Exception on load token from {self.token_path}")
+                _LOGGER.exception("Exception on load token from %s", self.token_path)
         return None
 
     def save_token(self, token=None):
@@ -35,7 +35,7 @@ class MiTokenStore:
                 with open(self.token_path, 'w') as f:
                     json.dump(token, f, indent=2)
             except Exception:
-                _LOGGER.exception(f"Exception on save token to {self.token_path}")
+                _LOGGER.exception("Exception on save token to %s", self.token_path)
         elif os.path.isfile(self.token_path):
             os.remove(self.token_path)
 
@@ -81,7 +81,7 @@ class MiAccount:
             self.token = None
             if self.token_store:
                 self.token_store.save_token()
-            _LOGGER.exception(f"Exception on login {self.username}: {e}")
+            _LOGGER.exception("Exception on login %s: %s", self.username, e)
             return False
 
     async def _serviceLogin(self, uri, data=None):
@@ -108,10 +108,10 @@ class MiAccount:
 
     async def mi_request(self, sid, url, data, headers, relogin=True):
         if (self.token and sid in self.token) or await self.login(sid):  # Ensure login
-            _LOGGER.info(f"{url} {data}")
             cookies = {'userId': self.token['userId'], 'serviceToken': self.token[sid][1]}
             content = data(self.token, cookies) if callable(data) else data
             method = 'GET' if data is None else 'POST'
+            _LOGGER.info("%s %s", url, content)
             async with self.session.request(method, url, data=content, cookies=cookies, headers=headers) as r:
                 status = r.status
                 if status == 200:
@@ -124,7 +124,7 @@ class MiAccount:
                 else:
                     resp = await r.text()
             if status == 401 and relogin:
-                _LOGGER.warn(f"Auth error on request {url} {resp}, relogin...")
+                _LOGGER.warn("Auth error on request %s %s, relogin...", url, resp)
                 self.token = None  # Auth error, reset login
                 return await self.request(sid, url, data, headers, False)
         else:
