@@ -77,9 +77,10 @@ class MiIOService:
         return (await self.miot_set_props(did, [(siid, piid, value)]))[0]
 
     async def miot_action(self, did, siid, aiid=1, args=[]):
-        # if not did:
-        #     did = f'action-{siid}-{aiid}'
         return await self.miot_request('action', {'did': did, 'siid': siid, 'aiid': aiid, 'in': args})
+    
+    async def miot_do_action(self, did, siid, aiid=1, args=[]):
+        return (await self.miot_action(did, siid, aiid, args)).get('code', -1)
 
     async def miot_spec(self, type=None, format=None):
         if not type or not type.startswith('urn'):
