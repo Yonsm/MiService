@@ -126,7 +126,7 @@ class MiAccount:
             if status == 401 and relogin:
                 _LOGGER.warn("Auth error on request %s %s, relogin...", url, resp)
                 self.token = None  # Auth error, reset login
-                return await self.request(sid, url, data, headers, False)
+                return await self.mi_request(sid, url, data, headers, False)
         else:
             resp = "Login failed"
         error = f"Error {url}: {resp}"
