@@ -96,29 +96,32 @@ class MiIOService:
             result = await r.json()
 
         if format != 'json':
-            services = result['services']
-            result = '# ' + url + '\n'
             STR_EXP = '%s%s = %s\n'
             STR_EXP2 = '%s%s = %s%s\n'
-            STR_SRV, STR_PROP, STR_VALUE, STR_ACTION = ('SRV_', 'PROP_', 'VALUE_{}_', 'ACTION_') if format == 'python' else ('', '  ', '    ', '  ')
-            for s in services:
+            STR_HEAD, STR_SRV, STR_PROP, STR_VALUE, STR_ACTION = ('from enum import IntEnum\n', 'SRV_', 'PROP_', 'class VALUE_{}(IntEnum):\n', 'ACTION_') if format == 'python' else ('', '', '  ', '', '  ')
+            text = '#' + url + '\n\n'
+            for s in result['services']:
                 desc = s['description'].replace(' ', '_')
-                result += STR_EXP % (STR_SRV, desc, s['iid'])
+                text += STR_EXP % (STR_SRV, desc, s['iid'])
                 for p in s.get('properties', []):
                     desc = p['description'].replace(' ', '_')
                     comment = ''.join([' #' + k for k, v in [(p['format'], 'string'), (''.join([a[0] for a in p['access']]), 'r')] if k != v])
-                    result += STR_EXP2 % (STR_PROP, desc, p['iid'], comment)
+                    text += STR_EXP2 % (STR_PROP, desc, p['iid'], comment)
                     if 'value-range' in p:
                         valuer = p['value-range']
                         length = min(3, len(valuer))
-                        result += ''.join([STR_EXP % (STR_VALUE.format(desc), ['MIN', 'MAX', 'STEP'][i], valuer[i]) for i in range(length) if i != 2 or valuer[i] != 1])
+                        values = {['MIN', 'MAX', 'STEP'][i]: valuer[i] for i in range(length) if i != 2 or valuer[i] != 1}
                     elif 'value-list' in p:
-                        result += ''.join([STR_EXP % (STR_VALUE.format(desc), i['description'].replace(' ', '_'), i['value']) for i in p['value-list']])
+                        values = {i['description'].replace(' ', '_'): i['value'] for i in p['value-list']}
+                    else:
+                        continue
+                    text += STR_VALUE.format(desc) + ''.join([STR_EXP % ('    ', k, v) for k, v in values.items()])
                 for a in s.get('actions', []):
                     desc = a['description'].replace(' ', '_')
                     comment = ''.join([f" #{io}={a[io]}" for io in ['in', 'out'] if a[io]])
-                    result += STR_EXP2 % (STR_ACTION, desc, a['iid'], comment)
-                result += '\n'
+                    text += STR_EXP2 % (STR_ACTION, desc, a['iid'], comment)
+                text += '\n'
+            result = STR_HEAD + text
         return result
 
     async def device_list(self, name=None, getVirtualModel=False, getHuamiDevices=0):
