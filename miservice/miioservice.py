@@ -78,9 +78,16 @@ class MiIOService:
 
     async def miot_action(self, did, siid, aiid=1, args=[]):
         return await self.miot_request('action', {'did': did, 'siid': siid, 'aiid': aiid, 'in': args})
-    
-    async def miot_do_action(self, did, siid, aiid=1, args=[]):
-        return (await self.miot_action(did, siid, aiid, args)).get('code', -1)
+
+    async def miot_control(self, did, siid, iid, value=[]):
+        if iid < 0:
+            return (await self.miot_action(did, siid, -iid, value if isinstance(value, list) else [value])).get('code', -1)
+        return await self.miot_set_prop(did, siid, iid, value)
+
+    async def device_list(self, name=None, getVirtualModel=False, getHuamiDevices=0):
+        result = await self.miio_request('/home/device_list', {'getVirtualModel': bool(getVirtualModel), 'getHuamiDevices': int(getHuamiDevices)})
+        result = result['list']
+        return result if name == 'full' else [{'name': i['name'], 'model': i['model'], 'did': i['did'], 'token': i['token']} for i in result if not name or name in i['name']]
 
     async def miot_spec(self, type=None, format=None):
         if not type or not type.startswith('urn'):
@@ -155,8 +162,3 @@ class MiIOService:
                 text += 'ALL_PROPS = ' + str(siids) + '\n'
             result = text
         return result
-
-    async def device_list(self, name=None, getVirtualModel=False, getHuamiDevices=0):
-        result = await self.miio_request('/home/device_list', {'getVirtualModel': bool(getVirtualModel), 'getHuamiDevices': int(getHuamiDevices)})
-        result = result['list']
-        return result if name == 'full' else [{'name': i['name'], 'model': i['model'], 'did': i['did'], 'token': i['token']} for i in result if not name or name in i['name']]
