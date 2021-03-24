@@ -80,8 +80,8 @@ class MiIOService:
         return await self.miot_request('action', {'did': did, 'siid': siid, 'aiid': aiid, 'in': args})
 
     async def miot_control(self, did, siid, iid, value=[]):
-        if iid < 0:
-            return (await self.miot_action(did, siid, -iid, value if isinstance(value, list) else [value])).get('code', -1)
+        if isinstance(value, list):
+            return (await self.miot_action(did, siid, iid, value)).get('code', -1)
         return await self.miot_set_prop(did, siid, iid, value)
 
     async def device_list(self, name=None, getVirtualModel=False, getHuamiDevices=0):
