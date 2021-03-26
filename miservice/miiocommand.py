@@ -40,7 +40,7 @@ Call MiIO: {prefix}/<uri> <data>\n\
            {prefix}/home/device_list {quote}{{"getVirtualModel":false,"getHuamiDevices":1}}{quote}\n\n\
 Devs List: {prefix}list [name=full|name_keyword] [getVirtualModel=false|true] [getHuamiDevices=0|1]\n\
            {prefix}list Light true 0\n\n\
-MiIO Spec: {prefix}spec [model_keyword|type_urn] [format=text|python|json]\n\
+MiIO Spec: {prefix}spec [model_keyword|type_urn] [format=text|python|json|lite]\n\
            {prefix}spec\n\
            {prefix}spec speaker\n\
            {prefix}spec xiaomi.wifispeaker.lx04\n\

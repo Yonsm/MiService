@@ -48,7 +48,7 @@ Call MiIO: micli.py /<uri> <data>
 Devs List: micli.py list [name=full|name_keyword] [getVirtualModel=false|true] [getHuamiDevices=0|1]
            micli.py list Light true 0
 
-MiIO Spec: micli.py spec [model_keyword|type_urn] [format=text|python|json]
+MiIO Spec: micli.py spec [model_keyword|type_urn] [format=text|python|json|lite]
            micli.py spec
            micli.py spec speaker
            micli.py spec xiaomi.wifispeaker.lx04

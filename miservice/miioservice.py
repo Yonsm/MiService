@@ -122,7 +122,9 @@ class MiIOService:
         async with self.account.session.get(url) as r:
             result = await r.json()
 
-        if format != 'json':
+        if format == 'lite':
+            return {s['description']: {'iid': s['iid']} | {('' if 'read' in p['access'] else '!') + p['description'] + ('=' if 'write' in p['access'] else ''): p['iid'] for p in s.get('properties', [])} | {'@' + a['description']: a['iid'] for a in s.get('actions', [])} for s in result['services']}
+        elif format != 'json':
             STR_EXP = '%s%s = %s\n'
             STR_EXP2 = '%s%s = %s%s\n'
             STR_HEAD, STR_SRV, STR_PROP, STR_VALUE, STR_ACTION = ('from enum import IntEnum\n\n', 'SRV_', 'PROP_', 'class VALUE_{}(IntEnum):\n',
