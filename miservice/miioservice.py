@@ -150,7 +150,7 @@ class MiIOService:
                     values = {i['description'].replace(' ', '_'): i['value'] for i in p['value-list']}
                 else:
                     continue
-                text += STR_VALUE.format(desc) + ''.join([STR_EXP % ('    ', k, v) for k, v in values.items()])
+                result += STR_VALUE.format(desc) + ''.join([STR_EXP % ('    ', k, v) for k, v in values.items()])
             for a in s.get('actions', []):
                 desc = a['description'].replace(' ', '_')
                 comment = ''.join([f" #{io}={a[io]}" for io in ['in', 'out'] if a[io]])
