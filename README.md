@@ -26,33 +26,35 @@ MiService：XiaoMi Cloud Service
 ## Command Line
 ```
 Usage: The following variables must be set:
-           export MI_USER=<username>
-           export MI_PASS=<password>
-           export MI_DID=<deviceId>
+           export MI_USER=<Username>
+           export MI_PASS=<Password>
+           export MI_DID=<Device ID|Name>
 
-Get Props: micli.py <siid[-piid]>[,...]
-           micli.py 1,1-2,1-3,1-4,2-1,2-2,3
-Set Props: micli.py <siid[-piid]=[#]value>[,...]
-           micli.py 2=#60,2-2=#false,3=test
-Do Action: micli.py <siid[-piid]> <arg1|#NA> [...] 
-           micli.py 2 #NA
-           micli.py 5 Hello
-           micli.py 5-4 Hello #1
+Get Props: /usr/local/bin/micli.py <siid[-piid]>[,...]
+           /usr/local/bin/micli.py 1,1-2,1-3,1-4,2-1,2-2,3
+Set Props: /usr/local/bin/micli.py <siid[-piid]=[#]value>[,...]
+           /usr/local/bin/micli.py 2=#60,2-2=#false,3=test
+Do Action: /usr/local/bin/micli.py <siid[-piid]> <arg1|#NA> [...] 
+           /usr/local/bin/micli.py 2 #NA
+           /usr/local/bin/micli.py 5 Hello
+           /usr/local/bin/micli.py 5-4 Hello #1
 
-Call MIoT: micli.py <cmd=prop/get|/prop/set|action> <params>
-           micli.py action '{"did":"267090026","siid":5,"aiid":1,"in":["Hello"]}'
+Call MIoT: /usr/local/bin/micli.py <cmd=prop/get|/prop/set|action> <params>
+           /usr/local/bin/micli.py action '{"did":"267090026","siid":5,"aiid":1,"in":["Hello"]}'
 
-Call MiIO: micli.py /<uri> <data>
-           micli.py /home/device_list '{"getVirtualModel":false,"getHuamiDevices":1}'
+Call MiIO: /usr/local/bin/micli.py /<uri> <data>
+           /usr/local/bin/micli.py /home/device_list '{"getVirtualModel":false,"getHuamiDevices":1}'
 
-Devs List: micli.py list [name=full|name_keyword] [getVirtualModel=false|true] [getHuamiDevices=0|1]
-           micli.py list Light true 0
+Devs List: /usr/local/bin/micli.py list [name=full|name_keyword] [getVirtualModel=false|true] [getHuamiDevices=0|1]
+           /usr/local/bin/micli.py list Light true 0
 
-MiIO Spec: micli.py spec [model_keyword|type_urn] [format=text|python|json|lite]
-           micli.py spec
-           micli.py spec speaker
-           micli.py spec xiaomi.wifispeaker.lx04
-           micli.py spec urn:miot-spec-v2:device:speaker:0000A015:xiaomi-lx04:1
+MIoT Spec: /usr/local/bin/micli.py spec [model_keyword|type_urn] [format=text|python|json]
+           /usr/local/bin/micli.py spec
+           /usr/local/bin/micli.py spec speaker
+           /usr/local/bin/micli.py spec xiaomi.wifispeaker.lx04
+           /usr/local/bin/micli.py spec urn:miot-spec-v2:device:speaker:0000A015:xiaomi-lx04:1
+
+MIoT Decode: /usr/local/bin/micli.py decode <ssecurity> <nonce> <data> [gzip]
 ```
 
 ## 套路，例子：
@@ -62,8 +64,8 @@ MiIO Spec: micli.py spec [model_keyword|type_urn] [format=text|python|json|lite]
 ### 1. 先设置账号
 
 ```
-export MI_USER=<username>
-export MI_PASS=<password>
+export MI_USER=<Username>
+export MI_PASS=<Password>
 ```
 
 ### 2. 查询自己的设备
@@ -78,7 +80,7 @@ micli.py list
 为了后续操作，请设置 Device ID（来自上面这条命令的结果）。
 
 ```
-export MI_DID=<deviceId>
+export MI_DID=<Device ID|Name>
 ```
 
 ### 4. 查询设备的接口文档

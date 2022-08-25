@@ -129,6 +129,4 @@ class MiAccount:
                 return await self.mi_request(sid, url, data, headers, False)
         else:
             resp = "Login failed"
-        error = f"Error {url}: {resp}"
-        _LOGGER.error(error)
-        raise Exception(error)
+        raise Exception(f"Error {url}: {resp}")

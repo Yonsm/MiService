@@ -40,15 +40,21 @@ Call MiIO: {prefix}/<uri> <data>\n\
            {prefix}/home/device_list {quote}{{"getVirtualModel":false,"getHuamiDevices":1}}{quote}\n\n\
 Devs List: {prefix}list [name=full|name_keyword] [getVirtualModel=false|true] [getHuamiDevices=0|1]\n\
            {prefix}list Light true 0\n\n\
-MiIO Spec: {prefix}spec [model_keyword|type_urn] [format=text|python|json|lite]\n\
+MIoT Spec: {prefix}spec [model_keyword|type_urn] [format=text|python|json]\n\
            {prefix}spec\n\
            {prefix}spec speaker\n\
            {prefix}spec xiaomi.wifispeaker.lx04\n\
-           {prefix}spec urn:miot-spec-v2:device:speaker:0000A015:xiaomi-lx04:1\n\
+           {prefix}spec urn:miot-spec-v2:device:speaker:0000A015:xiaomi-lx04:1\n\n\
+MIoT Decode: {prefix}decode <ssecurity> <nonce> <data> [gzip]\n\
 '
 
 
 async def miio_command(service: MiIOService, did, text, prefix='?'):
+    if not did.isdigit():
+        devices = await service.device_list(did)
+        if not devices:
+            return "Device not found: " + did
+        did = devices[0]['did']
 
     cmd, arg = twins_split(text, ' ')
 
@@ -66,26 +72,32 @@ async def miio_command(service: MiIOService, did, text, prefix='?'):
     if cmd == 'spec':
         return await service.miot_spec(argc > 0 and argv[0], argc > 1 and argv[1])
 
+    if cmd == 'decode':
+        return MiIOService.miot_decode(argv[0], argv[1], argv[2], argc > 3 and argv[3] == 'gzip')
+
     if not did or not cmd or cmd == '?' or cmd == '？' or cmd == 'help' or cmd == '-h' or cmd == '--help':
         return miio_command_help(did, prefix)
 
     props = []
-    isget = False
+    setp = True
+    miot = True
     for item in cmd.split(','):
-        iid, value = twins_split(item, '=')
-        siid, apiid = twins_split(iid, '-', '1')
-        if not siid.isdigit() or not apiid.isdigit():
-            return 'ERROR: siid/piid/aiid must be integer'
-        prop = [int(siid), int(apiid)]
-        if not isget:
-            if value is None:
-                isget = True
-            else:
-                prop.append(string_or_value(value))
+        key, value = twins_split(item, '=')
+        siid, iid = twins_split(key, '-', '1')
+        if siid.isdigit() and iid.isdigit():
+            prop = [int(siid), int(iid)]
+        else:
+            prop = [key]
+            miot = False
+        if value is None:
+            setp = False
+        elif setp:
+            prop.append(string_or_value(value))
         props.append(prop)
 
-    if argc > 0:
+    if miot and argc > 0:
         args = [string_or_value(a) for a in argv] if arg != '#NA' else []
-        return await service.miot_action(did, props[0][0], props[0][1], args)
+        return await service.miot_action(did, props[0], args)
 
-    return await (service.miot_get_props if isget else service.miot_set_props)(did, props)
+    do_props = ((service.home_get_props, service.miot_get_props), (service.home_set_props, service.miot_set_props))[setp][miot]
+    return await do_props(did, props)
