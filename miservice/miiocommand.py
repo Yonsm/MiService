@@ -50,12 +50,6 @@ MIoT Decode: {prefix}decode <ssecurity> <nonce> <data> [gzip]\n\
 
 
 async def miio_command(service: MiIOService, did, text, prefix='?'):
-    if not did.isdigit():
-        devices = await service.device_list(did)
-        if not devices:
-            return "Device not found: " + did
-        did = devices[0]['did']
-
     cmd, arg = twins_split(text, ' ')
 
     if cmd.startswith('/'):
@@ -77,6 +71,12 @@ async def miio_command(service: MiIOService, did, text, prefix='?'):
 
     if not did or not cmd or cmd == '?' or cmd == '？' or cmd == 'help' or cmd == '-h' or cmd == '--help':
         return miio_command_help(did, prefix)
+
+    if not did.isdigit():
+        devices = await service.device_list(did)
+        if not devices:
+            return "Device not found: " + did
+        did = devices[0]['did']
 
     props = []
     setp = True
