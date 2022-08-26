@@ -112,7 +112,7 @@ class MiIOService:
                 d = desc[i]
                 if d in '-—{「[【(（<《':
                     return (name, '  # ' + desc[i:])
-                name += '_' if d == ' ' else d
+                name += '_' if d == ' ' or d == '.' else d
             return (name, '')
 
         def make_line(siid, iid, desc, comment, readable=False):
