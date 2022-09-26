@@ -9,8 +9,10 @@ from pathlib import Path
 
 from miservice import MiAccount, MiNAService, MiIOService, miio_command, miio_command_help
 
+MISERVICE_VERSION = '2.0.1'
 
 def usage():
+    print("MiService %s - XiaoMi Cloud Service\n" % MISERVICE_VERSION)
     print("Usage: The following variables must be set:")
     print("           export MI_USER=<Username>")
     print("           export MI_PASS=<Password>")
