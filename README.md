@@ -30,31 +30,31 @@ Usage: The following variables must be set:
            export MI_PASS=<Password>
            export MI_DID=<Device ID|Name>
 
-Get Props: /usr/local/bin/micli.py <siid[-piid]>[,...]
-           /usr/local/bin/micli.py 1,1-2,1-3,1-4,2-1,2-2,3
-Set Props: /usr/local/bin/micli.py <siid[-piid]=[#]value>[,...]
-           /usr/local/bin/micli.py 2=#60,2-2=#false,3=test
-Do Action: /usr/local/bin/micli.py <siid[-piid]> <arg1|#NA> [...] 
-           /usr/local/bin/micli.py 2 #NA
-           /usr/local/bin/micli.py 5 Hello
-           /usr/local/bin/micli.py 5-4 Hello #1
+Get Props: micli <siid[-piid]>[,...]
+           micli 1,1-2,1-3,1-4,2-1,2-2,3
+Set Props: micli <siid[-piid]=[#]value>[,...]
+           micli 2=#60,2-2=#false,3=test
+Do Action: micli <siid[-piid]> <arg1|#NA> [...] 
+           micli 2 #NA
+           micli 5 Hello
+           micli 5-4 Hello #1
 
-Call MIoT: /usr/local/bin/micli.py <cmd=prop/get|/prop/set|action> <params>
-           /usr/local/bin/micli.py action '{"did":"267090026","siid":5,"aiid":1,"in":["Hello"]}'
+Call MIoT: micli <cmd=prop/get|/prop/set|action> <params>
+           micli action '{"did":"267090026","siid":5,"aiid":1,"in":["Hello"]}'
 
-Call MiIO: /usr/local/bin/micli.py /<uri> <data>
-           /usr/local/bin/micli.py /home/device_list '{"getVirtualModel":false,"getHuamiDevices":1}'
+Call MiIO: micli /<uri> <data>
+           micli /home/device_list '{"getVirtualModel":false,"getHuamiDevices":1}'
 
-Devs List: /usr/local/bin/micli.py list [name=full|name_keyword] [getVirtualModel=false|true] [getHuamiDevices=0|1]
-           /usr/local/bin/micli.py list Light true 0
+Devs List: micli list [name=full|name_keyword] [getVirtualModel=false|true] [getHuamiDevices=0|1]
+           micli list Light true 0
 
-MIoT Spec: /usr/local/bin/micli.py spec [model_keyword|type_urn] [format=text|python|json]
-           /usr/local/bin/micli.py spec
-           /usr/local/bin/micli.py spec speaker
-           /usr/local/bin/micli.py spec xiaomi.wifispeaker.lx04
-           /usr/local/bin/micli.py spec urn:miot-spec-v2:device:speaker:0000A015:xiaomi-lx04:1
+MIoT Spec: micli spec [model_keyword|type_urn] [format=text|python|json]
+           micli spec
+           micli spec speaker
+           micli spec xiaomi.wifispeaker.lx04
+           micli spec urn:miot-spec-v2:device:speaker:0000A015:xiaomi-lx04:1
 
-MIoT Decode: /usr/local/bin/micli.py decode <ssecurity> <nonce> <data> [gzip]
+MIoT Decode: micli decode <ssecurity> <nonce> <data> [gzip]
 ```
 
 ## 套路，例子：
