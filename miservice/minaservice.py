@@ -33,7 +33,7 @@ class MiNAService:
             "/remote/ubus",
             {"deviceId": deviceId, "message": message, "method": method, "path": path},
         )
-        return result and result.get("code") == 0
+        return result
 
     async def text_to_speech(self, deviceId, text):
         return await self.ubus_request(
@@ -46,6 +46,22 @@ class MiNAService:
             "player_set_volume",
             "mediaplayer",
             {"volume": volume, "media": "app_ios"},
+        )
+
+    async def player_get_status(self, deviceId):
+        return await self.ubus_request(
+            deviceId,
+            "player_get_play_status",
+            "mediaplayer",
+            {"media": "app_ios"},
+        )
+
+    async def play_by_url(self, deviceId, url):
+        return await self.ubus_request(
+            deviceId,
+            "player_play_url",
+            "mediaplayer",
+            {"url": url, "type": 1,"media": "app_ios"},
         )
 
     async def send_message(self, devices, devno, message, volume=None):  # -1/0/1...
