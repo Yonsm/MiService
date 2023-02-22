@@ -48,6 +48,22 @@ class MiNAService:
             {"volume": volume, "media": "app_ios"},
         )
 
+    async def player_pause(self, deviceId):
+        return await self.ubus_request(
+            deviceId,
+            "player_play_operation",
+            "mediaplayer",
+            {"action": "pause", "media": "app_ios"},
+        )
+
+    async def player_play(self, deviceId):
+        return await self.ubus_request(
+            deviceId,
+            "player_play_operation",
+            "mediaplayer",
+            {"action": "play", "media": "app_ios"},
+        )
+
     async def player_get_status(self, deviceId):
         return await self.ubus_request(
             deviceId,
@@ -61,7 +77,7 @@ class MiNAService:
             deviceId,
             "player_play_url",
             "mediaplayer",
-            {"url": url, "type": 1,"media": "app_ios"},
+            {"url": url, "type": 1, "media": "app_ios"},
         )
 
     async def send_message(self, devices, devno, message, volume=None):  # -1/0/1...
