@@ -10,8 +10,6 @@ if len(sys.argv) == 1:
     exit(0)
 
 
-import time
-from pathlib import Path
 from setuptools import setup
 
 from miservice import MISERVICE_VERSION
@@ -21,11 +19,9 @@ setup(
     description="XiaoMi Cloud Service",
     version=MISERVICE_VERSION,
     license="MIT",
-    author="Yonsm",
-    author_email="Yonsm@qq.com",
-    url="https://github.com/Yonsm/MiService",
-    long_description=Path("README.md").read_text(),
-    long_description_content_type="text/markdown",
+    author="Yonsm, yihong0618",
+    author_email="Yonsm@qq.com, zouzou0208@gmail.com",
+    url="https://github.com/yihong0618/MiService",
     packages=["miservice"],
     scripts=["micli.py"],
     python_requires=">=3.7",
