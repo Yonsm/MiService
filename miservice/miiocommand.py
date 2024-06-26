@@ -100,4 +100,4 @@ async def miio_command(service: MiIOService, did, text, prefix='?'):
         return await service.miot_action(did, props[0], args)
 
     do_props = ((service.home_get_props, service.miot_get_props), (service.home_set_props, service.miot_set_props))[setp][miot]
-    return await do_props(did, props)
+    return await do_props(did, props if miot or setp else [p[0] for p in props])
