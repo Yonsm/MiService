@@ -4,14 +4,13 @@ import base64
 import hashlib
 import hmac
 import json
-from .miaccount import MiAccount
 
 # REGIONS = ['cn', 'de', 'i2', 'ru', 'sg', 'us']
 
 
 class MiIOService:
 
-    def __init__(self, account: MiAccount, region=None):
+    def __init__(self, account=None, region=None):
         self.account = account
         self.server = 'https://' + ('' if region is None or region == 'cn' else region + '.') + 'api.io.mi.com/app'
 
