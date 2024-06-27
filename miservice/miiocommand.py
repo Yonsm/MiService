@@ -9,9 +9,9 @@ def twins_split(string, sep, default=None):
 
 
 def string_to_value(string):
-    if string[0] == '#':
-        return string[1:]
-    if string == 'null':
+    if string[0] in '"\'#':
+        return string[1:-1] if string[-1] in '"\'#' else string[1:]
+    elif string == 'null':
         return None
     elif string == 'false':
         return False
@@ -27,11 +27,11 @@ def miio_command_help(did=None, prefix='?'):
 Get Props: {prefix}<siid[-piid]>[,...]\n\
            {prefix}1,1-2,1-3,1-4,2-1,2-2,3\n\
 Set Props: {prefix}<siid[-piid]=[#]value>[,...]\n\
-           {prefix}2=60,2-1=#60,2-2=false,2-3=#false,3=test\n\
+           {prefix}2=60,2-1=#60,2-2=false,2-3="null",3=test\n\
 Do Action: {prefix}<siid[-piid]> <arg1|[]> [...] \n\
            {prefix}2 []\n\
            {prefix}5 Hello\n\
-           {prefix}5-4 Hello #1\n\n\
+           {prefix}5-4 Hello 1\n\n\
 Call MIoT: {prefix}<cmd=prop/get|/prop/set|action> <params>\n\
            {prefix}action {quote}{{"did":"{did or "267090026"}","siid":5,"aiid":1,"in":["Hello"]}}{quote}\n\n\
 Call MiIO: {prefix}/<uri> <data>\n\
