@@ -9,7 +9,7 @@ from pathlib import Path
 
 from miservice import MiAccount, MiNAService, MiIOService, miio_command, miio_command_help
 
-MISERVICE_VERSION = '2.0.1'
+MISERVICE_VERSION = '2.1.1'
 
 def usage():
     print("MiService %s - XiaoMi Cloud Service\n" % MISERVICE_VERSION)
@@ -22,9 +22,10 @@ def usage():
 
 async def main(args):
     try:
+        env_get = os.environ.get
+        store = os.path.join(str(Path.home()), '.mi.token')
         async with ClientSession() as session:
-            env = os.environ
-            account = MiAccount(session, env.get('MI_USER'), env.get('MI_PASS'), os.path.join(str(Path.home()), '.mi.token'))
+            account = MiAccount(session, env_get('MI_USER'), env_get('MI_PASS'), store)
             if args.startswith('mina'):
                 service = MiNAService(account)
                 result = await service.device_list()
@@ -32,7 +33,7 @@ async def main(args):
                     await service.send_message(result, -1, args[4:])
             else:
                 service = MiIOService(account)
-                result = await miio_command(service, env.get('MI_DID'), args, sys.argv[0] + ' ')
+                result = await miio_command(service, env_get('MI_DID'), args, sys.argv[0] + ' ')
             if not isinstance(result, str):
                 result = json.dumps(result, indent=2, ensure_ascii=False)
     except Exception as e:
