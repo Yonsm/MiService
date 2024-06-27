@@ -19,7 +19,10 @@ def string_to_value(string):
         return True
     elif string.isdigit():
         return int(string)
-    return string
+    try:
+        return float(string)
+    except:
+        return string
 
 def miio_command_help(did=None, prefix='?'):
     quote = '' if prefix == '?' else "'"
