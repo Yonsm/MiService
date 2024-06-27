@@ -9,19 +9,17 @@ def twins_split(string, sep, default=None):
 
 
 def string_to_value(string):
-    if string == 'null' or string == 'none':
+    if string[0] == '#':
+        return string[1:]
+    if string == 'null':
         return None
     elif string == 'false':
         return False
     elif string == 'true':
         return True
-    else:
+    elif string.isdigit():
         return int(string)
-
-
-def string_or_value(string):
-    return string_to_value(string[1:]) if string[0] == '#' else string
-
+    return string
 
 def miio_command_help(did=None, prefix='?'):
     quote = '' if prefix == '?' else "'"
@@ -29,9 +27,9 @@ def miio_command_help(did=None, prefix='?'):
 Get Props: {prefix}<siid[-piid]>[,...]\n\
            {prefix}1,1-2,1-3,1-4,2-1,2-2,3\n\
 Set Props: {prefix}<siid[-piid]=[#]value>[,...]\n\
-           {prefix}2=#60,2-2=#false,3=test\n\
-Do Action: {prefix}<siid[-piid]> <arg1|#NA> [...] \n\
-           {prefix}2 #NA\n\
+           {prefix}2=60,2-1=#60,2-2=false,2-3=#false,3=test\n\
+Do Action: {prefix}<siid[-piid]> <arg1|[]> [...] \n\
+           {prefix}2 []\n\
            {prefix}5 Hello\n\
            {prefix}5-4 Hello #1\n\n\
 Call MIoT: {prefix}<cmd=prop/get|/prop/set|action> <params>\n\
@@ -92,11 +90,11 @@ async def miio_command(service: MiIOService, did, text, prefix='?'):
         if value is None:
             setp = False
         elif setp:
-            prop.append(string_or_value(value))
+            prop.append(string_to_value(value))
         props.append(prop)
 
     if miot and argc > 0:
-        args = [string_or_value(a) for a in argv] if arg != '#NA' else []
+        args = [] if arg == '[]' else [string_to_value(a) for a in argv]
         return await service.miot_action(did, props[0], args)
 
     do_props = ((service.home_get_props, service.miot_get_props), (service.home_set_props, service.miot_set_props))[setp][miot]
