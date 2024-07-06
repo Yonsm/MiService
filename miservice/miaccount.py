@@ -7,6 +7,7 @@ import random
 import string
 from urllib import parse
 from aiohttp import ClientSession
+from aiofiles import open as async_open
 
 _LOGGER = logging.getLogger(__package__)
 
@@ -20,34 +21,34 @@ class MiTokenStore:
     def __init__(self, token_path):
         self.token_path = token_path
 
-    def load_token(self):
+    async def load_token(self):
         if os.path.isfile(self.token_path):
             try:
-                with open(self.token_path) as f:
-                    return json.load(f)
-            except Exception:
-                _LOGGER.exception("Exception on load token from %s", self.token_path)
+                async with async_open(self.token_path) as f:                    
+                    return json.loads(await f.read())
+            except Exception as e:
+                _LOGGER.exception("Exception on load token from %s: %s", self.token_path, e)
         return None
 
-    def save_token(self, token=None):
+    async def save_token(self, token=None):
         if token:
             try:
-                with open(self.token_path, 'w') as f:
-                    json.dump(token, f, indent=2)
-            except Exception:
-                _LOGGER.exception("Exception on save token to %s", self.token_path)
+                async with async_open(self.token_path, 'w') as f:
+                    await f.write(json.dumps(token, indent=2))
+            except Exception as e:
+                _LOGGER.exception("Exception on save token to %s: %s", self.token_path, e)
         elif os.path.isfile(self.token_path):
             os.remove(self.token_path)
 
 
 class MiAccount:
 
-    def __init__(self, session: ClientSession, username, password, token_store=None):
+    def __init__(self, session: ClientSession, username, password, token_store='.mi.token'):
         self.session = session
         self.username = username
         self.password = password
         self.token_store = MiTokenStore(token_store) if isinstance(token_store, str) else token_store
-        self.token = token_store is not None and self.token_store.load_token()
+        self.token = None
 
     async def login(self, sid):
         if not self.token:
@@ -74,13 +75,13 @@ class MiAccount:
             serviceToken = await self._securityTokenService(resp['location'], resp['nonce'], resp['ssecurity'])
             self.token[sid] = (resp['ssecurity'], serviceToken)
             if self.token_store:
-                self.token_store.save_token(self.token)
+                await self.token_store.save_token(self.token)
             return True
 
         except Exception as e:
             self.token = None
             if self.token_store:
-                self.token_store.save_token()
+                await self.token_store.save_token()
             _LOGGER.exception("Exception on login %s: %s", self.username, e)
             return False
 
@@ -107,11 +108,13 @@ class MiAccount:
         return serviceToken
 
     async def mi_request(self, sid, url, data, headers, relogin=True):
+        if self.token is None and self.token_store is not None:
+            self.token = await self.token_store.load_token()
         if (self.token and sid in self.token) or await self.login(sid):  # Ensure login
             cookies = {'userId': self.token['userId'], 'serviceToken': self.token[sid][1]}
             content = data(self.token, cookies) if callable(data) else data
             method = 'GET' if data is None else 'POST'
-            _LOGGER.debug("%s %s", url, content)
+            _LOGGER.info("%s %s", url, content)
             async with self.session.request(method, url, data=content, cookies=cookies, headers=headers) as r:
                 status = r.status
                 if status == 200:
