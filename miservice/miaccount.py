@@ -114,7 +114,7 @@ class MiAccount:
             cookies = {'userId': self.token['userId'], 'serviceToken': self.token[sid][1]}
             content = data(self.token, cookies) if callable(data) else data
             method = 'GET' if data is None else 'POST'
-            _LOGGER.info("%s %s", url, content)
+            _LOGGER.debug("%s %s", url, content)
             async with self.session.request(method, url, data=content, cookies=cookies, headers=headers) as r:
                 status = r.status
                 if status == 200:
