@@ -3,6 +3,7 @@ XiaoMi Cloud Service for mi.com
 
 ## Install
 ```
+pip3 install aiohttp aiofiles 
 pip3 install miservice
 ```
 
@@ -25,36 +26,38 @@ MiService：XiaoMi Cloud Service
 
 ## Command Line
 ```
+MiService 2.1.2 - XiaoMi Cloud Service
+
 Usage: The following variables must be set:
            export MI_USER=<Username>
            export MI_PASS=<Password>
            export MI_DID=<Device ID|Name>
 
-Get Props: /usr/local/bin/micli.py <siid[-piid]>[,...]
-           /usr/local/bin/micli.py 1,1-2,1-3,1-4,2-1,2-2,3
-Set Props: /usr/local/bin/micli.py <siid[-piid]=[#]value>[,...]
-           /usr/local/bin/micli.py 2=#60,2-2=#false,3=test
-Do Action: /usr/local/bin/micli.py <siid[-piid]> <arg1|#NA> [...] 
-           /usr/local/bin/micli.py 2 #NA
-           /usr/local/bin/micli.py 5 Hello
-           /usr/local/bin/micli.py 5-4 Hello #1
+Get Props: ./micli.py <siid[-piid]>[,...]
+           ./micli.py 1,1-2,1-3,1-4,2-1,2-2,3
+Set Props: ./micli.py <siid[-piid]=[#]value>[,...]
+           ./micli.py 2=60,2-1=#60,2-2=false,2-3="null",3=test
+Do Action: ./micli.py <siid[-piid]> <arg1|[]> [...]
+           ./micli.py 2 []
+           ./micli.py 5 Hello
+           ./micli.py 5-4 Hello 1
 
-Call MIoT: /usr/local/bin/micli.py <cmd=prop/get|/prop/set|action> <params>
-           /usr/local/bin/micli.py action '{"did":"267090026","siid":5,"aiid":1,"in":["Hello"]}'
+Call MIoT: ./micli.py <cmd=prop/get|/prop/set|action> <params>
+           ./micli.py action '{"did":"267090026","siid":5,"aiid":1,"in":["Hello"]}'
 
-Call MiIO: /usr/local/bin/micli.py /<uri> <data>
-           /usr/local/bin/micli.py /home/device_list '{"getVirtualModel":false,"getHuamiDevices":1}'
+Call MiIO: ./micli.py /<uri> <data>
+           ./micli.py /home/device_list '{"getVirtualModel":false,"getHuamiDevices":1}'
 
-Devs List: /usr/local/bin/micli.py list [name=full|name_keyword] [getVirtualModel=false|true] [getHuamiDevices=0|1]
-           /usr/local/bin/micli.py list Light true 0
+Devs List: ./micli.py list [name=full|name_keyword] [getVirtualModel=false|true] [getHuamiDevices=0|1]
+           ./micli.py list Light true 0
 
-MIoT Spec: /usr/local/bin/micli.py spec [model_keyword|type_urn] [format=text|python|json]
-           /usr/local/bin/micli.py spec
-           /usr/local/bin/micli.py spec speaker
-           /usr/local/bin/micli.py spec xiaomi.wifispeaker.lx04
-           /usr/local/bin/micli.py spec urn:miot-spec-v2:device:speaker:0000A015:xiaomi-lx04:1
+MIoT Spec: ./micli.py spec [model_keyword|type_urn] [format=text|python|json]
+           ./micli.py spec
+           ./micli.py spec speaker
+           ./micli.py spec xiaomi.wifispeaker.lx04
+           ./micli.py spec urn:miot-spec-v2:device:speaker:0000A015:xiaomi-lx04:1
 
-MIoT Decode: /usr/local/bin/micli.py decode <ssecurity> <nonce> <data> [gzip]
+MIoT Decode: ./micli.py decode <ssecurity> <nonce> <data> [gzip]
 ```
 
 ## 套路，例子：
@@ -103,7 +106,10 @@ micli.py 2-1
 ```
 micli.py 2=#60
 ```
-`siid` 和 `piid` 规则同属性查询命令。注意 `#` 号的意思是整数类型，如果不带则默认是文本字符串类型，要根据接口描述文档来确定类型。
+
+参数类型要根据接口描述文档来确定:
+- `#`是强制文本类型，还可以用单引号`'`和双引号`"`来强制文本类型`'`（可单个引号，也可以两个）;
+- 如果不强制文本类型，默认将检测类型；可能的检测结果是 JSON 的 `null`、`false`、`true`、`整数`、`浮点数`或者`文本`。
 
 ### 7. 动作调用：TTS 播报和执行文本
 
@@ -111,17 +117,19 @@ micli.py 2=#60
 ```
 micli.py 5 您好
 ```
-其中，5 为 `siid`，此处省略了 `1` 的 `aiid`。
+其中，5 为 `siid`，此处省略了 `aiid`（默认为`1`）。
 
 以下命令执行后相当于直接对对音箱说“小爱同学，查询天气”是一个效果：
 ```
-micli.py 5-4 查询天气 #1
+micli.py 5-4 查询天气 1
 ```
 
-其中 `#1` 表示设备语音回应，如果要执行默默关灯（不要音箱回应），可以如下：
+其中 `1` 表示设备语音回应，如果要执行默默关灯（不要音箱回应），可以如下：
 ```
-micli.py 5-4 关灯 #0
+micli.py 5-4 关灯 0
 ```
+
+如果没有参数，请传入`[]`保留占位。
 
 ### 8. 其它应用
 

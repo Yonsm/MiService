@@ -9,8 +9,10 @@ from pathlib import Path
 
 from miservice import MiAccount, MiNAService, MiIOService, miio_command, miio_command_help
 
+MISERVICE_VERSION = '2.1.2'
 
 def usage():
+    print("MiService %s - XiaoMi Cloud Service\n" % MISERVICE_VERSION)
     print("Usage: The following variables must be set:")
     print("           export MI_USER=<Username>")
     print("           export MI_PASS=<Password>")
@@ -20,9 +22,10 @@ def usage():
 
 async def main(args):
     try:
+        env_get = os.environ.get
+        store = os.path.join(str(Path.home()), '.mi.token')
         async with ClientSession() as session:
-            env = os.environ
-            account = MiAccount(session, env.get('MI_USER'), env.get('MI_PASS'), os.path.join(str(Path.home()), '.mi.token'))
+            account = MiAccount(session, env_get('MI_USER'), env_get('MI_PASS'), store)
             if args.startswith('mina'):
                 service = MiNAService(account)
                 result = await service.device_list()
@@ -30,7 +33,7 @@ async def main(args):
                     await service.send_message(result, -1, args[4:])
             else:
                 service = MiIOService(account)
-                result = await miio_command(service, env.get('MI_DID'), args, sys.argv[0] + ' ')
+                result = await miio_command(service, env_get('MI_DID'), args, sys.argv[0] + ' ')
             if not isinstance(result, str):
                 result = json.dumps(result, indent=2, ensure_ascii=False)
     except Exception as e:
@@ -38,6 +41,8 @@ async def main(args):
     print(result)
 
 if __name__ == '__main__':
+    if sys.platform.startswith('win'):
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     argv = sys.argv
     argc = len(argv)
     if argc > 1 and argv[1].startswith('-v'):

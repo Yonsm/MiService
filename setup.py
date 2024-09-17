@@ -14,15 +14,17 @@ import time
 from pathlib import Path
 from setuptools import setup
 
+from micli import MISERVICE_VERSION
+
 setup(
     name='miservice',
     description='XiaoMi Cloud Service',
-    version=time.strftime("%Y.%m.%d"),
+    version=MISERVICE_VERSION,
     license='MIT',
     author='Yonsm',
     author_email='Yonsm@qq.com',
     url='https://github.com/Yonsm/MiService',
-    long_description=Path('README.md').read_text(),
+    long_description=Path('README.md').read_text(encoding="utf-8"),
     long_description_content_type='text/markdown',
     packages=['miservice'],
     scripts=['micli.py'],
