@@ -3,7 +3,8 @@ XiaoMi Cloud Service for mi.com
 
 ## Install
 ```
-pip3 install aiohttp aiofiles miservice
+pip3 install aiohttp aiofiles 
+pip3 install miservice
 ```
 
 ## Library
