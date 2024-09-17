@@ -41,6 +41,8 @@ async def main(args):
     print(result)
 
 if __name__ == '__main__':
+    if sys.platform.startswith('win'):
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     argv = sys.argv
     argc = len(argv)
     if argc > 1 and argv[1].startswith('-v'):
