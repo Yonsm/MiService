@@ -88,7 +88,7 @@ class MiIOService:
             except:
                 result = None
             if not result:
-                async with self.account.session.get('http://miot-spec.org/miot-spec-v2/instances?status=all') as r:
+                async with self.account.request('http://miot-spec.org/miot-spec-v2/instances?status=all') as r:
                     all = {i['model']: i['type'] for i in (await r.json())['instances']}
                     with open(path, 'w') as f:
                         json.dump(all, f)
@@ -98,7 +98,7 @@ class MiIOService:
             type = list(result.values())[0]
 
         url = 'http://miot-spec.org/miot-spec-v2/instance?type=' + type
-        async with self.account.session.get(url) as r:
+        async with self.account.request(url) as r:
             result = await r.json()
 
         def parse_desc(node):

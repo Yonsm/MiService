@@ -24,7 +24,7 @@ class MiTokenStore:
     async def load_token(self):
         if os.path.isfile(self.token_path):
             try:
-                async with async_open(self.token_path) as f:                    
+                async with async_open(self.token_path) as f:
                     return json.loads(await f.read())
             except Exception as e:
                 _LOGGER.exception("Exception on load token from %s: %s", self.token_path, e)
@@ -43,12 +43,27 @@ class MiTokenStore:
 
 class MiAccount:
 
-    def __init__(self, session: ClientSession, username, password, token_store='.mi.token'):
-        self.session = session
+    def __init__(self, session, username, password, token_store='.mi.token'):
+        self._session = session
         self.username = username
         self.password = password
         self.token_store = MiTokenStore(token_store) if isinstance(token_store, str) else token_store
         self.token = None
+
+    def request(self, url, method='GET', **kwargs):
+        if self._session:
+            return self._session.request(method, url, **kwargs)
+
+        class RequestContextManager:
+            async def __aenter__(self):
+                self.sess = ClientSession()
+                self.resp = await self.sess.request(method, url, **kwargs)
+                return self.resp
+
+            async def __aexit__(self, exc_type, exc, tb):
+                await self.resp.release()
+                await self.sess.close()
+        return RequestContextManager()
 
     async def login(self, sid):
         if not self.token:
@@ -92,20 +107,20 @@ class MiAccount:
             cookies['userId'] = self.token['userId']
             cookies['passToken'] = self.token['passToken']
         url = 'https://account.xiaomi.com/pass/' + uri
-        async with self.session.request('GET' if data is None else 'POST', url, data=data, cookies=cookies, headers=headers) as r:
+        async with self.request(url, 'GET' if data is None else 'POST', data=data, cookies=cookies, headers=headers) as r:
             raw = await r.read()
-        resp = json.loads(raw[11:])
-        _LOGGER.debug("%s: %s", uri, resp)
-        return resp
+            resp = json.loads(raw[11:])
+            # _LOGGER.debug("%s: %s", uri, resp)
+            return resp
 
     async def _securityTokenService(self, location, nonce, ssecurity):
         nsec = 'nonce=' + str(nonce) + '&' + ssecurity
         clientSign = base64.b64encode(hashlib.sha1(nsec.encode()).digest()).decode()
-        async with self.session.get(location + '&clientSign=' + parse.quote(clientSign)) as r:
+        async with self.request(location + '&clientSign=' + parse.quote(clientSign)) as r:
             serviceToken = r.cookies['serviceToken'].value
             if not serviceToken:
                 raise Exception(await r.text())
-        return serviceToken
+            return serviceToken
 
     async def mi_request(self, sid, url, data, headers, relogin=True):
         if self.token is None and self.token_store is not None:
@@ -114,8 +129,8 @@ class MiAccount:
             cookies = {'userId': self.token['userId'], 'serviceToken': self.token[sid][1]}
             content = data(self.token, cookies) if callable(data) else data
             method = 'GET' if data is None else 'POST'
-            _LOGGER.debug("%s %s", url, content)
-            async with self.session.request(method, url, data=content, cookies=cookies, headers=headers) as r:
+            # _LOGGER.debug("%s %s", url, content)
+            async with self.request(url, method, data=content, cookies=cookies, headers=headers) as r:
                 status = r.status
                 if status == 200:
                     resp = await r.json(content_type=None)
@@ -126,11 +141,12 @@ class MiAccount:
                         status = 401
                 else:
                     resp = await r.text()
-            if status == 401 and relogin:
-                _LOGGER.warn("Auth error on request %s %s, relogin...", url, resp)
-                self.token = None  # Auth error, reset login
-                await self.token_store.save_token()
-                return await self.mi_request(sid, url, data, headers, False)
+                if status == 401 and relogin:
+                    _LOGGER.warning("Auth error on request %s %s, relogin...", url, resp)
+                    self.token = None  # Auth error, reset login
+                    if self.token_store:
+                        await self.token_store.save_token()
+                    return await self.mi_request(sid, url, data, headers, False)
         else:
             resp = "Login failed"
         raise Exception(f"Error {url}: {resp}")

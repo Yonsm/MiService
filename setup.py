@@ -10,7 +10,6 @@ if len(sys.argv) == 1:
     exit(0)
 
 
-import time
 from pathlib import Path
 from setuptools import setup
 
