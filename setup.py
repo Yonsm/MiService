@@ -28,7 +28,7 @@ setup(
     packages=['miservice'],
     scripts=['micli.py'],
     python_requires='>=3.7',
-    install_requires=['aiohttp'],
+    install_requires=['aiohttp', 'aiofiles'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
