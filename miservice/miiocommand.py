@@ -82,24 +82,20 @@ async def miio_command(service: MiIOService, did, text, prefix='?'):
 
     props = []
     setp = True
-    miot = True
     for item in cmd.split(','):
-        key, value = str2tup(item, '=')
-        siid, iid = str2tup(key, '-', '1')
-        if siid.isdigit() and iid.isdigit():
-            prop = [int(siid), int(iid)]
-        else:
-            prop = [key]
-            miot = False
-        if value is None:
-            setp = False
+        iid, val = str2tup(item, '=')
+        if val is not None:
+            iid = (iid, str2val(val))
+            if not setp:
+                return "Invalid command: " + cmd
         elif setp:
-            prop.append(str2val(value))
-        props.append(prop)
+            setp = False
+        props.append(iid)
+    miot = (props[0][0][0] if setp else props[0][0]).isdigit()
 
-    if miot and argc > 0:
+    if not setp and miot and argc > 0:
         args = [] if arg == '[]' else [str2val(a) for a in argv]
         return await service.miot_action(did, props[0], args)
 
-    do_props = ((service.home_get_props, service.miot_get_props), (service.home_set_props, service.miot_set_props))[setp][miot]
-    return await do_props(did, props if miot or setp else [p[0] for p in props])
+    miio_props = service.miio_set_props if setp else service.miio_get_props
+    return await miio_props(did, props)

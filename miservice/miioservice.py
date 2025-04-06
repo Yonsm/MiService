@@ -30,6 +30,35 @@ class MiIOService:
             raise Exception(f"Error {uri}: {resp}")
         return resp['result']
 
+    async def miio_get_props(self, did, iids):
+        # iid: (2,1)|[2,1]|"2-1"|"power"
+        if isinstance(iids[0], str):
+            if not iids[0][0].isdigit():
+                return await self.home_get_props(did, iids)
+            iids = [str2iid(i) for i in iids]
+        return await self.miot_get_props(did, iids)
+
+    async def miio_set_props(self, did, props):
+        if isinstance(props[0][0], str):
+            if not props[0][0][0].isdigit():
+                return await self.home_set_props(did, props)
+            props = [(*str2iid(prop[0]), prop[1]) for prop in props]
+        return await self.miot_set_props(did, props)
+
+    async def miio_get_prop(self, did, iid):
+        if isinstance(iid, str):
+            if not iid[0].isdigit():
+                return await self.home_get_prop(did, iid)
+            iid = str2iid(iid)
+        return await self.miot_get_prop(did, iid)
+
+    async def miio_set_prop(self, did, iid, value):
+        if isinstance(iid, str):
+            if not iid[0].isdigit():
+                return await self.home_set_prop(did, iid, value)
+            iid = str2iid(iid)
+        return await self.miot_set_prop(did, iid, value)
+
     async def home_request(self, did, method, params):
         return await self.miio_request('/home/rpc/' + did, {'id': 1, 'method': method, "accessKey": "IOS00026747c5acafc2", 'params': params})
 

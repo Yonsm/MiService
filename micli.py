@@ -9,7 +9,7 @@ from pathlib import Path
 
 from miservice import MiAccount, MiNAService, MiIOService, miio_command, miio_command_help
 
-MISERVICE_VERSION = '2.2.0'
+MISERVICE_VERSION = '2.3.0'
 
 def usage():
     print("MiService %s - XiaoMi Cloud Service\n" % MISERVICE_VERSION)
