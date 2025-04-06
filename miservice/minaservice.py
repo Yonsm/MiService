@@ -1,8 +1,8 @@
-import json
+from json import dumps
 from .miaccount import MiAccount, get_random
 
-import logging
-_LOGGER = logging.getLogger(__package__)
+from logging import getLogger
+_LOGGER = getLogger(__package__)
 
 
 class MiNAService:
@@ -24,7 +24,7 @@ class MiNAService:
         return result.get('data') if result else None
 
     async def ubus_request(self, deviceId, method, path, message):
-        message = json.dumps(message)
+        message = dumps(message)
         result = await self.mina_request('/remote/ubus', {'deviceId': deviceId, 'message': message, 'method': method, 'path': path})
         return result and result.get('code') == 0
 

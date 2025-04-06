@@ -1,19 +1,18 @@
-import base64
-import hashlib
-import json
-import logging
-import os
-import random
-import string
+from base64 import b64encode
+from hashlib import md5, sha1
+from json import dumps, loads
+from os import remove, path
+from random import sample
+from string import ascii_letters, digits
 from urllib import parse
-from aiohttp import ClientSession
-from aiofiles import open as async_open
+from aiofiles import open as aio_open
 
-_LOGGER = logging.getLogger(__package__)
+from logging import getLogger
+_LOGGER = getLogger(__package__)
 
 
 def get_random(length):
-    return ''.join(random.sample(string.ascii_letters + string.digits, length))
+    return ''.join(sample(ascii_letters + digits, length))
 
 
 class MiTokenStore:
@@ -22,10 +21,10 @@ class MiTokenStore:
         self.token_path = token_path
 
     async def load_token(self):
-        if os.path.isfile(self.token_path):
+        if path.isfile(self.token_path):
             try:
-                async with async_open(self.token_path) as f:
-                    return json.loads(await f.read())
+                async with aio_open(self.token_path) as f:
+                    return loads(await f.read())
             except Exception as e:
                 _LOGGER.exception("Exception on load token from %s: %s", self.token_path, e)
         return None
@@ -33,12 +32,12 @@ class MiTokenStore:
     async def save_token(self, token=None):
         if token:
             try:
-                async with async_open(self.token_path, 'w') as f:
-                    await f.write(json.dumps(token, indent=2))
+                async with aio_open(self.token_path, 'w') as f:
+                    await f.write(dumps(token, indent=2))
             except Exception as e:
                 _LOGGER.exception("Exception on save token to %s: %s", self.token_path, e)
-        elif os.path.isfile(self.token_path):
-            os.remove(self.token_path)
+        elif path.isfile(self.token_path):
+            remove(self.token_path)
 
 
 class MiAccount:
@@ -56,6 +55,7 @@ class MiAccount:
 
         class RequestContextManager:
             async def __aenter__(self):
+                from aiohttp import ClientSession
                 self.sess = ClientSession()
                 self.resp = await self.sess.request(method, url, **kwargs)
                 return self.resp
@@ -78,7 +78,7 @@ class MiAccount:
                     '_sign': resp['_sign'],
                     'callback': resp['callback'],
                     'user': self.username,
-                    'hash': hashlib.md5(self.password.encode()).hexdigest().upper()
+                    'hash': md5(self.password.encode()).hexdigest().upper()
                 }
                 resp = await self._serviceLogin('serviceLoginAuth2', data)
                 if resp['code'] != 0:
@@ -109,13 +109,13 @@ class MiAccount:
         url = 'https://account.xiaomi.com/pass/' + uri
         async with self.request(url, 'GET' if data is None else 'POST', data=data, cookies=cookies, headers=headers) as r:
             raw = await r.read()
-            resp = json.loads(raw[11:])
+            resp = loads(raw[11:])
             # _LOGGER.debug("%s: %s", uri, resp)
             return resp
 
     async def _securityTokenService(self, location, nonce, ssecurity):
         nsec = 'nonce=' + str(nonce) + '&' + ssecurity
-        clientSign = base64.b64encode(hashlib.sha1(nsec.encode()).digest()).decode()
+        clientSign = b64encode(sha1(nsec.encode()).digest()).decode()
         async with self.request(location + '&clientSign=' + parse.quote(clientSign)) as r:
             serviceToken = r.cookies['serviceToken'].value
             if not serviceToken:

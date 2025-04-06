@@ -1,11 +1,17 @@
-import os
-import time
-import base64
-import hashlib
-import hmac
-import json
+from os import urandom
+from os.path import join
+from time import time
+from base64 import b64encode, b64decode
+from hashlib import sha256
+from hmac import new as hmac_new
+from json import loads, dumps, load, dump
 
 # REGIONS = ['cn', 'de', 'i2', 'ru', 'sg', 'us']
+
+
+def str2iid(iid):
+    pos = iid.find('-')
+    return (int(iid), 1) if pos == -1 else (int(iid[0:pos]), int(iid[pos + 1:]))
 
 
 class MiIOService:
@@ -81,17 +87,17 @@ class MiIOService:
                         ret[m] = t
                 return ret
             import tempfile
-            path = os.path.join(tempfile.gettempdir(), 'miservice_miot_specs.json')
+            file = join(tempfile.gettempdir(), 'miservice_miot_specs.json')
             try:
-                with open(path) as f:
-                    result = get_spec(json.load(f))
+                with open(file) as f:
+                    result = get_spec(load(f))
             except:
                 result = None
             if not result:
                 async with self.account.request('http://miot-spec.org/miot-spec-v2/instances?status=all') as r:
                     all = {i['model']: i['type'] for i in (await r.json())['instances']}
-                    with open(path, 'w') as f:
-                        json.dump(all, f)
+                    with open(file, 'w') as f:
+                        dump(all, f)
                     result = get_spec(all)
             if len(result) != 1:
                 return result
@@ -164,9 +170,9 @@ class MiIOService:
     @staticmethod
     def miot_decode(ssecurity, nonce, data, gzip=False):
         from Crypto.Cipher import ARC4
-        r = ARC4.new(base64.b64decode(MiIOService.sign_nonce(ssecurity, nonce)))
+        r = ARC4.new(b64decode(MiIOService.sign_nonce(ssecurity, nonce)))
         r.encrypt(bytes(1024))
-        decrypted = r.encrypt(base64.b64decode(data))
+        decrypted = r.encrypt(b64decode(data))
         if gzip:
             try:
                 from io import BytesIO
@@ -177,21 +183,21 @@ class MiIOService:
                 decrypted = GzipFile(fileobj=compressed, mode='rb').read()
             except:
                 pass
-        return json.loads(decrypted.decode())
+        return loads(decrypted.decode())
 
     @staticmethod
     def sign_nonce(ssecurity, nonce):
-        m = hashlib.sha256()
-        m.update(base64.b64decode(ssecurity))
-        m.update(base64.b64decode(nonce))
-        return base64.b64encode(m.digest()).decode()
+        m = sha256()
+        m.update(b64decode(ssecurity))
+        m.update(b64decode(nonce))
+        return b64encode(m.digest()).decode()
 
     @staticmethod
     def sign_data(uri, data, ssecurity):
         if not isinstance(data, str):
-            data = json.dumps(data)
-        nonce = base64.b64encode(os.urandom(8) + int(time.time() / 60).to_bytes(4, 'big')).decode()
+            data = dumps(data)
+        nonce = b64encode(urandom(8) + int(time() / 60).to_bytes(4, 'big')).decode()
         snonce = MiIOService.sign_nonce(ssecurity, nonce)
         msg = '&'.join([uri, snonce, nonce, 'data=' + data])
-        sign = hmac.new(key=base64.b64decode(snonce), msg=msg.encode(), digestmod=hashlib.sha256).digest()
-        return {'_nonce': nonce, 'data': data, 'signature': base64.b64encode(sign).decode()}
+        sign = hmac_new(key=b64decode(snonce), msg=msg.encode(), digestmod=sha256).digest()
+        return {'_nonce': nonce, 'data': data, 'signature': b64encode(sign).decode()}
