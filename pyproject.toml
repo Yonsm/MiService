@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "miservice"
+dynamic = ["version"]
+description = "XiaoMi Cloud Service for mi.com"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+authors = [
+    { name = "Yonsm", email = "Yonsm@qq.com" },
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Home Automation",
+]
+
+[project.optional-dependencies]
+aiohttp = ["aiohttp"]
+
+[project.urls]
+Homepage = "https://github.com/Yonsm/MiService"
+
+[project.scripts]
+miservice = "miservice.__main__:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "miservice.__version__"}

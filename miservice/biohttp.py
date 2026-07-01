@@ -9,7 +9,7 @@ Usage::
             data = await resp.json()
 """
 
-from asyncio import get_event_loop
+from asyncio import get_running_loop
 from urllib import parse, request as urlrequest
 from http.cookies import SimpleCookie
 from json import loads
@@ -27,7 +27,7 @@ class ClientResponse:
 
     async def read(self) -> bytes:
         if self._body is None:
-            self._body = await get_event_loop().run_in_executor(None, self._resp.read)
+            self._body = await get_running_loop().run_in_executor(None, self._resp.read)
         return self._body
 
     async def text(self, encoding='utf-8') -> str:
@@ -48,10 +48,11 @@ class _CookieCapturingRedirectHandler(urlrequest.HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
-def _do_request(url, method, kwargs):
+def _do_request(url, method, kwargs, cookie_jar=None):
     """Blocking HTTP request using urllib — called in executor thread."""
     headers = dict(kwargs.get('headers') or {})
-    cookies = kwargs.get('cookies')
+    cookies = dict(cookie_jar or {})
+    cookies.update(kwargs.get('cookies') or {})
     if cookies:
         headers['Cookie'] = '; '.join(f'{k}={v}' for k, v in cookies.items())
 
@@ -72,26 +73,42 @@ def _do_request(url, method, kwargs):
     redirect_handler._collected_cookies = []
     opener = urlrequest.build_opener(redirect_handler)
 
+    timeout = kwargs.get('timeout', 30)
+
     try:
-        resp = opener.open(req)
+        resp = opener.open(req, timeout=timeout)
     except urlrequest.HTTPError as e:
+        # HTTPError is itself a valid response object with .read(), .headers, etc.
         resp = e
 
     sc = SimpleCookie()
     for header in redirect_handler._collected_cookies:
         sc.load(header)
-    for header in resp.headers.get_all('Set-Cookie') or []:
-        sc.load(header)
+    # Guard against responses that may not expose headers (e.g. bare HTTPError)
+    resp_headers = getattr(resp, 'headers', None)
+    if resp_headers is not None:
+        for header in resp_headers.get_all('Set-Cookie') or []:
+            sc.load(header)
     return ClientResponse(resp, sc)
 
 
 class ClientSession:
     """aiohttp-compatible async session backed by urllib."""
 
+    def __init__(self):
+        self._cookie_jar = {}  # host -> {name: value}, scoped per host to avoid cross-domain leakage
+
     def request(self, method, url, **kwargs):
+        host = parse.urlparse(url).netloc
+
         @asynccontextmanager
         async def ctx():
-            resp = await get_event_loop().run_in_executor(None, _do_request, url, method, kwargs)
+            resp = await get_running_loop().run_in_executor(
+                None, _do_request, url, method, kwargs, self._cookie_jar.get(host))
+            # Persist cookies from the response into this host's jar only
+            host_jar = self._cookie_jar.setdefault(host, {})
+            for key, morsel in resp.cookies.items():
+                host_jar[key] = morsel.value
             try:
                 yield resp
             finally:

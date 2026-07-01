@@ -1,14 +1,20 @@
+"""MiIO command parsing and dispatch."""
 
 from json import loads
-from .miioservice import MiIOService
+from typing import Optional, Tuple, Any
+from .miioservice import MiIOService, str2iid
 
 
-def str2tup(string: str, sep, default=None):
+def str2tup(string: str, sep, default=None) -> Tuple[str, Any]:
+    """Split *string* at the first *sep*, returning (left, right) or (string, default)."""
     pos = string.find(sep)
     return (string, default) if pos == -1 else (string[0:pos], string[pos + 1:])
 
 
-def str2val(string: str):
+def str2val(string: str) -> Any:
+    """Parse a command-line value string into its Python type."""
+    if not string:
+        return string
     if string[0] in '"\'#':
         return string[1:-1] if string[-1] in '"\'#' else string[1:]
     elif string == 'null':
@@ -26,6 +32,7 @@ def str2val(string: str):
 
 
 def miio_command_help(did=None, prefix='?'):
+    """Generate help text for miio commands."""
     quote = '' if prefix == '?' else "'"
     return f"""\
 Get Props: {prefix}<siid[-piid]>[,...]
@@ -43,10 +50,16 @@ Call MIoT: {prefix}<cmd=prop/get|/prop/set|action> <params>
 Call MiIO: {prefix}/<uri> <data>
            {prefix}/home/device_list {quote}{{"getVirtualModel":false,"getHuamiDevices":1}}{quote}
 
-Devs List: {prefix}list [name=full|name_keyword] [getVirtualModel=false|true] [getHuamiDevices=0|1]
+Devs List: {prefix}list [name_keyword|full] [getVirtualModel=false|true] [getHuamiDevices=0|1]
            {prefix}list Light true 0
+           {prefix}list full
 
-MIoT Spec: {prefix}spec [model_keyword|type_urn] [format=text|python|json]
+Home List: {prefix}home [name_keyword|full]
+           {prefix}home
+           {prefix}home full
+           {prefix}home 我的家
+
+MIoT Spec: {prefix}spec [model_keyword|type_urn] [text|python]
            {prefix}spec
            {prefix}spec speaker
            {prefix}spec xiaomi.wifispeaker.lx04
@@ -56,7 +69,8 @@ MIoT Decode: {prefix}decode <ssecurity> <nonce> <data> [gzip]
 """
 
 
-async def miio_command(service: MiIOService, did, text, prefix='?'):
+async def miio_command(service: MiIOService, did: Optional[str], text: str, prefix: str = '?'):
+    """Parse and execute a miio command string against the given service."""
     cmd, arg = str2tup(text, ' ')
 
     if cmd.startswith('/'):
@@ -70,13 +84,17 @@ async def miio_command(service: MiIOService, did, text, prefix='?'):
     if cmd == 'list':
         return await service.device_list(argc > 0 and argv[0], argc > 1 and str2val(argv[1]), argc > 2 and argv[2])
 
+    if cmd == 'home':
+        return await service.home_list(argc > 0 and argv[0])
+
     if cmd == 'spec':
         return await service.miot_spec(argc > 0 and argv[0], argc > 1 and argv[1])
 
     if cmd == 'decode':
         return MiIOService.miot_decode(argv[0], argv[1], argv[2], argc > 3 and argv[3] == 'gzip')
 
-    if not did or not cmd or cmd == '?' or cmd == '？' or cmd == 'help' or cmd == '-h' or cmd == '--help':
+    # Full-width ？ for CJK keyboard input; not a typo
+    if not did or not cmd or cmd in ('?', '？', 'help', '-h', '--help'):
         return miio_command_help(did, prefix)
 
     if not did.isdigit():
@@ -100,7 +118,7 @@ async def miio_command(service: MiIOService, did, text, prefix='?'):
 
     if not setp and miot and argc > 0:
         args = [] if arg == '[]' else [str2val(a) for a in argv]
-        return await service.miot_action(did, props[0], args)
+        return await service.miot_action(did, str2iid(props[0]), args)
 
     miio_props = service.miio_set_props if setp else service.miio_get_props
     return await miio_props(did, props)
