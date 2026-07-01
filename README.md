@@ -3,7 +3,7 @@ XiaoMi Cloud Service for mi.com
 
 ## Install
 ```
-pip3 install aiohttp aiofiles miservice
+pip3 install miservice
 ```
 
 ## Library
@@ -25,7 +25,7 @@ MiService：XiaoMi Cloud Service
 
 ## Command Line
 ```
-MiService 2.1.2 - XiaoMi Cloud Service
+MiService 2.4.0 - XiaoMi Cloud Service
 
 Usage: The following variables must be set:
            export MI_USER=<Username>

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from aiohttp import ClientSession
 import asyncio
 import logging
 import json
@@ -9,7 +8,14 @@ from pathlib import Path
 
 from miservice import MiAccount, MiNAService, MiIOService, miio_command, miio_command_help
 
-MISERVICE_VERSION = '2.3.0'
+MISERVICE_VERSION = '2.4.0'
+
+
+async def otp_input(otp_method):
+    """Default OTP callback: read verification code from terminal."""
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, input, f"Input {otp_method} Code: ")
+
 
 def usage():
     print("MiService %s - XiaoMi Cloud Service\n" % MISERVICE_VERSION)
@@ -21,24 +27,32 @@ def usage():
 
 
 async def main(args):
+    env_get = os.environ.get
+    store = os.path.join(str(Path.home()), '.mi.token')
+    session = None
     try:
-        env_get = os.environ.get
-        store = os.path.join(str(Path.home()), '.mi.token')
-        async with ClientSession() as session:
-            account = MiAccount(session, env_get('MI_USER'), env_get('MI_PASS'), store)
-            if args.startswith('mina'):
-                service = MiNAService(account)
-                result = await service.device_list()
-                if len(args) > 4:
-                    await service.send_message(result, -1, args[4:])
-            else:
-                service = MiIOService(account)
-                result = await miio_command(service, env_get('MI_DID'), args, sys.argv[0] + ' ')
-            if not isinstance(result, str):
-                result = json.dumps(result, indent=2, ensure_ascii=False)
+        try:
+            from aiohttp import ClientSession
+            session = ClientSession()
+        except ImportError:
+            pass
+        account = MiAccount(session, env_get('MI_USER'), env_get('MI_PASS'), store, otp_callback=otp_input)
+        if args.startswith('mina'):
+            service = MiNAService(account)
+            result = await service.device_list()
+            if len(args) > 4:
+                await service.send_message(result, -1, args[4:])
+        else:
+            service = MiIOService(account)
+            result = await miio_command(service, env_get('MI_DID'), args, sys.argv[0] + ' ')
+        if not isinstance(result, str):
+            result = json.dumps(result, indent=2, ensure_ascii=False)
+        print(result)
     except Exception as e:
-        result = e
-    print(result)
+        print(e)
+    finally:
+        if session:
+            await session.close()
 
 if __name__ == '__main__':
     argv = sys.argv

@@ -3,12 +3,12 @@ from json import loads
 from .miioservice import MiIOService
 
 
-def str2tup(string, sep, default=None):
+def str2tup(string: str, sep, default=None):
     pos = string.find(sep)
     return (string, default) if pos == -1 else (string[0:pos], string[pos + 1:])
 
 
-def str2val(string):
+def str2val(string: str):
     if string[0] in '"\'#':
         return string[1:-1] if string[-1] in '"\'#' else string[1:]
     elif string == 'null':
@@ -21,34 +21,39 @@ def str2val(string):
         return int(string)
     try:
         return float(string)
-    except:
+    except ValueError:
         return string
 
 
 def miio_command_help(did=None, prefix='?'):
     quote = '' if prefix == '?' else "'"
-    return f'\
-Get Props: {prefix}<siid[-piid]>[,...]\n\
-           {prefix}1,1-2,1-3,1-4,2-1,2-2,3\n\
-Set Props: {prefix}<siid[-piid]=[#]value>[,...]\n\
-           {prefix}2=60,2-1=#60,2-2=false,2-3="null",3=test\n\
-Do Action: {prefix}<siid[-piid]> <arg1|[]> [...] \n\
-           {prefix}2 []\n\
-           {prefix}5 Hello\n\
-           {prefix}5-4 Hello 1\n\n\
-Call MIoT: {prefix}<cmd=prop/get|/prop/set|action> <params>\n\
-           {prefix}action {quote}{{"did":"{did or "267090026"}","siid":5,"aiid":1,"in":["Hello"]}}{quote}\n\n\
-Call MiIO: {prefix}/<uri> <data>\n\
-           {prefix}/home/device_list {quote}{{"getVirtualModel":false,"getHuamiDevices":1}}{quote}\n\n\
-Devs List: {prefix}list [name=full|name_keyword] [getVirtualModel=false|true] [getHuamiDevices=0|1]\n\
-           {prefix}list Light true 0\n\n\
-MIoT Spec: {prefix}spec [model_keyword|type_urn] [format=text|python|json]\n\
-           {prefix}spec\n\
-           {prefix}spec speaker\n\
-           {prefix}spec xiaomi.wifispeaker.lx04\n\
-           {prefix}spec urn:miot-spec-v2:device:speaker:0000A015:xiaomi-lx04:1\n\n\
-MIoT Decode: {prefix}decode <ssecurity> <nonce> <data> [gzip]\n\
-'
+    return f"""\
+Get Props: {prefix}<siid[-piid]>[,...]
+           {prefix}1,1-2,1-3,1-4,2-1,2-2,3
+Set Props: {prefix}<siid[-piid]=[#]value>[,...]
+           {prefix}2=60,2-1=#60,2-2=false,2-3="null",3=test
+Do Action: {prefix}<siid[-piid]> <arg1|[]> [...]
+           {prefix}2 []
+           {prefix}5 Hello
+           {prefix}5-4 Hello 1
+
+Call MIoT: {prefix}<cmd=prop/get|/prop/set|action> <params>
+           {prefix}action {quote}{{"did":"{did or "267090026"}","siid":5,"aiid":1,"in":["Hello"]}}{quote}
+
+Call MiIO: {prefix}/<uri> <data>
+           {prefix}/home/device_list {quote}{{"getVirtualModel":false,"getHuamiDevices":1}}{quote}
+
+Devs List: {prefix}list [name=full|name_keyword] [getVirtualModel=false|true] [getHuamiDevices=0|1]
+           {prefix}list Light true 0
+
+MIoT Spec: {prefix}spec [model_keyword|type_urn] [format=text|python|json]
+           {prefix}spec
+           {prefix}spec speaker
+           {prefix}spec xiaomi.wifispeaker.lx04
+           {prefix}spec urn:miot-spec-v2:device:speaker:0000A015:xiaomi-lx04:1
+
+MIoT Decode: {prefix}decode <ssecurity> <nonce> <data> [gzip]
+"""
 
 
 async def miio_command(service: MiIOService, did, text, prefix='?'):

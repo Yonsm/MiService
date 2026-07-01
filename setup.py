@@ -5,7 +5,7 @@ import sys
 
 if len(sys.argv) == 1:
     os.system('%s sdist' % sys.argv[0])
-    os.system('twine upload dist/*')
+    os.system('python3 -m twine upload dist/*')
     os.system('rm -rf dist *.egg-info')
     exit(0)
 
@@ -28,7 +28,8 @@ setup(
     packages=['miservice'],
     scripts=['micli.py'],
     python_requires='>=3.7',
-    install_requires=['aiohttp', 'aiofiles'],
+    install_requires=[],
+    extras_require={'aiohttp': ['aiohttp']},
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

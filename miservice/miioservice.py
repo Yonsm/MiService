@@ -9,9 +9,31 @@ from json import loads, dumps, load, dump
 # REGIONS = ['cn', 'de', 'i2', 'ru', 'sg', 'us']
 
 
-def str2iid(iid):
+def str2iid(iid: str) -> tuple:
     pos = iid.find('-')
     return (int(iid), 1) if pos == -1 else (int(iid[0:pos]), int(iid[pos + 1:]))
+
+
+def rc4(key: bytes, data: bytes) -> bytes:
+    """Pure-Python RC4 (ARC4) implementation — replaces pycryptodome."""
+    S = list(range(256))
+    j = 0
+    for i in range(256):
+        j = (j + S[i] + key[i % len(key)]) & 0xFF
+        S[i], S[j] = S[j], S[i]
+    # Discard first 1024 bytes (RC4 drop, matching pycryptodome usage)
+    i = j = 0
+    out = bytearray()
+    for _ in range(1024):
+        i = (i + 1) & 0xFF
+        j = (j + S[i]) & 0xFF
+        S[i], S[j] = S[j], S[i]
+    for byte in data:
+        i = (i + 1) & 0xFF
+        j = (j + S[i]) & 0xFF
+        S[i], S[j] = S[j], S[i]
+        out.append(byte ^ S[(S[i] + S[j]) & 0xFF])
+    return bytes(out)
 
 
 class MiIOService:
@@ -94,8 +116,8 @@ class MiIOService:
     async def miot_set_prop(self, did, iid, value):
         return (await self.miot_set_props(did, [(iid[0], iid[1], value)]))[0]
 
-    async def miot_action(self, did, iid, args=[]):
-        result = await self.miot_request('action', {'did': did, 'siid': iid[0], 'aiid': iid[1], 'in': args})
+    async def miot_action(self, did, iid, args=None):
+        result = await self.miot_request('action', {'did': did, 'siid': iid[0], 'aiid': iid[1], 'in': args or []})
         return result.get('code', -1)
 
     async def device_list(self, name=None, getVirtualModel=False, getHuamiDevices=0):
@@ -120,7 +142,8 @@ class MiIOService:
             try:
                 with open(file) as f:
                     result = get_spec(load(f))
-            except:
+            except (OSError, ValueError):
+                # Cache miss or corrupt cache — re-fetch below
                 result = None
             if not result:
                 async with self.account.request('http://miot-spec.org/miot-spec-v2/instances?status=all') as r:
@@ -198,10 +221,7 @@ class MiIOService:
 
     @staticmethod
     def miot_decode(ssecurity, nonce, data, gzip=False):
-        from Crypto.Cipher import ARC4
-        r = ARC4.new(b64decode(MiIOService.sign_nonce(ssecurity, nonce)))
-        r.encrypt(bytes(1024))
-        decrypted = r.encrypt(b64decode(data))
+        decrypted = rc4(b64decode(MiIOService.sign_nonce(ssecurity, nonce)), b64decode(data))
         if gzip:
             try:
                 from io import BytesIO
@@ -210,7 +230,8 @@ class MiIOService:
                 compressed.write(decrypted)
                 compressed.seek(0)
                 decrypted = GzipFile(fileobj=compressed, mode='rb').read()
-            except:
+            except OSError:
+                # Not gzip-compressed; fall back to the raw decrypted bytes
                 pass
         return loads(decrypted.decode())
 
