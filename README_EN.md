@@ -15,8 +15,9 @@ Supports Xiaomi account login (with OTP two-factor authentication), MiIO/MIoT de
 - MiIO protocol device control (property read/write, action invocation)
 - MIoT Spec interface documentation queries (supports text/python formatted output (raw dict by default))
 - MiNA XiaoAi Speaker control: TTS broadcast, volume, playback control, status queries, AI response retrieval
+- Direct LAN device control (`MiIOLocalService`), no cloud account needed
 - CLI tool `miservice` for one-line device operations; also supports `python -m miservice`
-- Zero hard dependencies; `aiohttp` is optional (falls back to built-in `biohttp` when not installed)
+- Zero hard dependencies: falls back to built-in `biohttp` when `aiohttp` isn't installed; falls back to a built-in pure-Python AES when `pycryptodome` isn't installed
 
 ## Installation
 
@@ -25,6 +26,9 @@ pip3 install miservice
 
 # Optional: install aiohttp for better async HTTP performance
 pip3 install aiohttp
+
+# Optional: install pycryptodome for a faster AES implementation (used by MiIOLocalService; falls back to a built-in pure-Python implementation otherwise)
+pip3 install pycryptodome
 ```
 
 Requires Python 3.8+.
@@ -56,6 +60,14 @@ MiService: XiaoMi Cloud Service
   |     |-- Auto-detection of device models (some models use play_music API)
   |
   |-- miio_command: MiIO command-style interface
+  |
+  |-- MiIOLocalService: Direct LAN device control (no cloud account needed)
+  |     |-- Property get/set
+  |     |-- Raw miIO method invocation
+  |
+  |-- aes: Built-in pure-Python AES-128-CBC (fallback used when pycryptodome isn't installed, backs miiolocal)
+  |
+  |-- local_command: Local device command-style interface
 ```
 
 ## Environment Variables
@@ -65,6 +77,7 @@ MiService: XiaoMi Cloud Service
 | `MI_USER` | Yes | Xiaomi account username |
 | `MI_PASS` | Yes | Xiaomi account password |
 | `MI_DID` | No | Device ID or device name (required when operating devices; also used by MiNA device-level commands to locate the target speaker) |
+| `MI_LOCAL` | No | `<IP>:<Token>`; when set, commands go directly over the LAN instead of the cloud, no `MI_USER`/`MI_PASS`/`MI_DID` needed |
 
 ## CLI Usage
 
@@ -120,6 +133,18 @@ MiNA Commands:
            miservice mina volume <n> # Set volume (0-100)
            miservice mina status     # Get playback status
            miservice mina ask        # Get latest AI response
+
+Local Device (no cloud account, direct LAN control):
+           export MI_LOCAL=<IP>:<Token>
+
+Get Props: miservice <prop>[,...]
+           miservice power,brightness
+Set Props: miservice <prop=value>[,...]
+           miservice power=on,brightness=80
+
+Call Method: miservice /<method> [params_json]
+             miservice /miIO.info
+             miservice /set_power '["on"]'
 ```
 
 > You can also run `python -m miservice` with the same arguments as the `miservice` command.
@@ -237,6 +262,18 @@ miservice mina ask                  # Get latest AI response
 
 > Note: With `mina <text>`, if the text happens to match a subcommand name (e.g., `pause`), it will be treated as a subcommand. To broadcast such text, use quotes or add a prefix, e.g., `miservice mina "Pause for a moment"`.
 
+### 9. Direct LAN Control (No Cloud Account)
+
+Set `MI_LOCAL=<device IP>:<device Token>` and the CLI talks to the device directly over UDP instead of the cloud (`Token` can be obtained from `miservice list` via the cloud, or sniffed from the app):
+
+```bash
+export MI_LOCAL=192.168.1.10:0123456789abcdef0123456789abcdef
+
+miservice power,brightness          # Read properties
+miservice power=on,brightness=80    # Set properties
+miservice /miIO.info                # Call a raw miIO method
+```
+
 ## Library Usage
 
 ```python
@@ -276,6 +313,12 @@ async def main():
         # Playback status and AI response
         status = await na_service.player_get_status(device_id)
         messages = await na_service.get_latest_ask(device_id)
+
+    # Direct LAN control (no cloud account needed, only device IP and Token)
+    from miservice import MiIOLocalService
+    local_service = MiIOLocalService('192.168.1.10', '0123456789abcdef0123456789abcdef')
+    power = await local_service.get_prop('power')
+    await local_service.set_prop('power', 'on')
 
 asyncio.run(main())
 ```

@@ -30,6 +30,7 @@ classifiers = [
 
 [project.optional-dependencies]
 aiohttp = ["aiohttp"]
+crypto = ["pycryptodome"]
 
 [project.urls]
 Homepage = "https://github.com/Yonsm/MiService"

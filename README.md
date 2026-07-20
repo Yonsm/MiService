@@ -15,8 +15,9 @@ XiaoMi Cloud Service for mi.com — 小米云服务 Python 库与命令行工具
 - MiIO 协议设备控制（属性读取/设置、动作调用）
 - MIoT Spec 接口文档查询（支持 text/python 格式化输出（不指定时返回原始 dict））
 - MiNA 小爱音箱控制：TTS 语音播报、音量、播放控制、状态查询、AI 应答获取
+- 局域网本地直连设备（`MiIOLocalService`），无需云端账号
 - 命令行工具 `miservice`，一行命令操作设备；亦支持 `python -m miservice`
-- 零硬依赖，`aiohttp` 为可选依赖（未安装时自动使用内置 `biohttp` 回退）
+- 零硬依赖：`aiohttp` 未安装时自动回退到内置 `biohttp`；`pycryptodome` 未安装时 AES 自动回退到内置纯 Python 实现
 
 ## 安装
 
@@ -25,6 +26,9 @@ pip3 install miservice
 
 # 可选：安装 aiohttp 以获得更好的异步 HTTP 性能
 pip3 install aiohttp
+
+# 可选：安装 pycryptodome 以获得更快的 AES 实现（用于 MiIOLocalService，不装则自动使用内置纯 Python 实现）
+pip3 install pycryptodome
 ```
 
 要求 Python 3.8+。
@@ -56,6 +60,14 @@ MiService：XiaoMi Cloud Service
   |     |-- 设备型号自动适配（部分机型使用 play_music API）
   |
   |-- miio_command：MiIO 命令风格接口
+  |
+  |-- MiIOLocalService：局域网本地直连设备（无需云端账号）
+  |     |-- 属性获取/设置
+  |     |-- 原始 miIO 方法调用
+  |
+  |-- aes：内置 AES-128-CBC 纯 Python 实现（pycryptodome 未安装时的回退，供 miiolocal 使用）
+  |
+  |-- local_command：本地设备命令风格接口
 ```
 
 ## 环境变量
@@ -65,6 +77,7 @@ MiService：XiaoMi Cloud Service
 | `MI_USER` | 是 | 小米账号用户名 |
 | `MI_PASS` | 是 | 小米账号密码 |
 | `MI_DID` | 否 | 设备 ID 或设备名称（操作设备时必填；MiNA 设备级命令亦用它定位目标音箱） |
+| `MI_LOCAL` | 否 | `<IP>:<Token>`，设置后走局域网本地直连，无需 `MI_USER`/`MI_PASS`/`MI_DID` |
 
 ## 命令行用法
 
@@ -120,6 +133,18 @@ MiNA Commands:
            miservice mina volume <n> # Set volume (0-100)
            miservice mina status     # Get playback status
            miservice mina ask        # Get latest AI response
+
+Local Device (no cloud account, direct LAN control):
+           export MI_LOCAL=<IP>:<Token>
+
+Get Props: miservice <prop>[,...]
+           miservice power,brightness
+Set Props: miservice <prop=value>[,...]
+           miservice power=on,brightness=80
+
+Call Method: miservice /<method> [params_json]
+             miservice /miIO.info
+             miservice /set_power '["on"]'
 ```
 
 > 也可通过 `python -m miservice` 运行，参数与 `miservice` 命令完全一致。
@@ -237,6 +262,18 @@ miservice mina ask                  # 获取最近一次 AI 应答
 
 > 注：`mina <text>` 形式中，若文本恰好为子命令名（如 `pause`），会被视为子命令；如需播报此类文本，请加引号或前缀文字，如 `miservice mina "暂停一下"`。
 
+### 9. 局域网本地直连（无需云端账号）
+
+设置 `MI_LOCAL=<设备IP>:<设备Token>` 后，命令行不再走云端，直接通过 UDP 与设备通信（`Token` 可从 `miservice list` 的云端查询结果中获取，或用 APP 抓取）：
+
+```bash
+export MI_LOCAL=192.168.1.10:0123456789abcdef0123456789abcdef
+
+miservice power,brightness          # 读取属性
+miservice power=on,brightness=80    # 设置属性
+miservice /miIO.info                # 调用原始 miIO 方法
+```
+
 ## 作为库使用
 
 ```python
@@ -276,6 +313,12 @@ async def main():
         # 播放状态与 AI 应答
         status = await na_service.player_get_status(device_id)
         messages = await na_service.get_latest_ask(device_id)
+
+    # 局域网本地直连（无需云端账号，仅需设备 IP 和 Token）
+    from miservice import MiIOLocalService
+    local_service = MiIOLocalService('192.168.1.10', '0123456789abcdef0123456789abcdef')
+    power = await local_service.get_prop('power')
+    await local_service.set_prop('power', 'on')
 
 asyncio.run(main())
 ```

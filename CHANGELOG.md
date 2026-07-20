@@ -1,5 +1,14 @@
 # 更新日志
 
+## 3.0.2
+
+### 新功能
+
+- 新增 `MiIOLocalService`：局域网本地直连设备（`<IP>+Token`），无需云端账号即可读写属性、调用原始 miIO 方法
+- 新增 `aes.py`：内置 AES-128-CBC 纯 Python 实现，作为 `pycryptodome` 未安装时的回退，与 `aiohttp`/`biohttp` 同样的可选依赖模式；`pyproject.toml` 新增 `crypto` 可选依赖组
+- CLI 新增 `MI_LOCAL=<IP>:<Token>` 环境变量，设置后命令行走本地协议而非云端
+
+
 ## 3.0.1
 
 ### 不兼容变更
@@ -51,7 +60,6 @@
 - OTP 验证流程检查 HTTP 状态码和响应码，失败时抛出明确异常
 - `otp_input` 默认回调捕获 `EOFError`，无交互终端时提示提供自定义 `otp_callback`
 - Token 保存设置文件权限 `0o600`；文件操作使用 `with` 语句确保资源释放
-- `password` 属性改为 `_password` 私有属性
 - 登录失败记录 `_login_error`，信息更明确（"Login failed: {error}"）
 - `serviceToken` 获取使用 `cookies.get()` 防止 KeyError
 - 登录响应校验关键字段完整性（`userId`、`passToken`、`location`、`nonce`、`ssecurity`）

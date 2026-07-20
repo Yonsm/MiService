@@ -8,7 +8,7 @@ import os
 import sys
 from pathlib import Path
 
-from miservice import MiAccount, MiNAService, MiIOService, miio_command, miio_command_help, __version__
+from miservice import MiAccount, MiNAService, MiIOService, miio_command, miio_command_help, MiIOLocalService, local_command, local_command_help, __version__
 
 _LOG_LEVELS = [logging.NOTSET, logging.FATAL, logging.ERROR,
                logging.WARN, logging.INFO, logging.DEBUG]
@@ -42,6 +42,9 @@ def usage():
     print("MiNA Commands:")
     for sub, desc in _MINA_COMMANDS:
         print(f"           {prefix}mina {sub.ljust(11)}{desc}")
+    print("\nLocal Device (no cloud account, direct LAN control):")
+    print("           export MI_LOCAL=<IP>:<Token>\n")
+    print(local_command_help(prefix=prefix))
 
 
 def find_device_id(hardware_data: list, mi_did: str) -> str:
@@ -159,9 +162,32 @@ async def _run_mina(account: MiAccount, args: str) -> int:
     return 0 if result else 1
 
 
+async def _run_local(mi_local: str, args: str) -> int:
+    """Handle direct LAN device control via MI_LOCAL=<ip>:<token>, no cloud account needed."""
+    ip, _, token = mi_local.partition(':')
+    if not ip or not token:
+        print("Error: MI_LOCAL must be <IP>:<Token>", file=sys.stderr)
+        return 1
+    try:
+        service = MiIOLocalService(ip, token)
+        result = await local_command(service, args, sys.argv[0] + ' ')
+        if not isinstance(result, str):
+            result = json.dumps(result, indent=2, ensure_ascii=False)
+        print(result)
+    except Exception as e:
+        _LOGGER.exception("Error: %s", e)
+        print(e, file=sys.stderr)
+        return 1
+    return 0
+
+
 async def _run(args: str) -> int:
     """Parse CLI arguments, authenticate, and dispatch the requested command."""
     env_get = os.environ.get
+    mi_local = env_get('MI_LOCAL')
+    if mi_local:
+        return await _run_local(mi_local, args)
+
     store = os.path.join(str(Path.home()), '.mi.token')
     session = None
     try:
