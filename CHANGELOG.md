@@ -8,6 +8,32 @@
 - 新增 `aes.py`：内置 AES-128-CBC 纯 Python 实现，作为 `pycryptodome` 未安装时的回退，与 `aiohttp`/`biohttp` 同样的可选依赖模式；`pyproject.toml` 新增 `crypto` 可选依赖组
 - CLI 新增 `MI_LOCAL=<IP>:<Token>` 环境变量，设置后命令行走本地协议而非云端
 
+### 改进
+
+**API 设计**
+- `MiAccount` 支持 `async with` 上下文管理器，自动管理 session 生命周期（仅关闭内部创建的 session）
+- `biohttp.ClientSession` 支持自定义默认超时时间（`ClientSession(timeout=60)`）
+- `MiNAService.send_message` 改进文档，明确 `devno`/`message`/`volume` 参数语义及返回值含义
+
+**miaccount.py**
+- 登录限流保护：检测到小米账户返回限流错误码 `70022` 时累计失败次数，连续达到 5 次后进入 2 小时冷却期，冷却期内 `login()` 直接抛出异常而不再发起登录请求，避免被服务端进一步封锁（仅针对 `serviceLogin` 第一步返回的限流；冷却仅在第 5 次触发时设置一次，不会因持续失败而不断延后）
+- 移除 `_login_error` 字段：登录失败详情已由 `_LOGGER.exception` 记录到日志，`mi_request` 的失败分支改为固定文案 `"Login failed"`，不再保存与拼接待处理异常对象
+
+**工程化**
+- `pyproject.toml` 新增 `dev` 可选依赖组（pytest、pytest-asyncio、ruff、mypy、build、twine）
+- 新增 `CONTRIBUTING.md` 贡献指南
+
+### 修正
+
+- CHANGELOG 3.0.1 中关于 `password` 改为 `_password` 私有属性的描述不实，已删除该条目
+
+### 注意
+
+- 限流冷却状态（失败计数与冷却到期时间）仅保存在内存中，**进程重启后会丢失**。长期运行的进程可正常生效；频繁重启的场景下保护会被削弱
+- 冷却期内 `mi_request` 会直接向上抛出 `"Too many login failures, retry after Nh"` 异常，**不再走** `"Error {url}: ..."` 的常规错误格式，按异常消息格式解析的调用方需适配
+- 第 5 次限流失败当次仍返回 `False`（走 `mi_request` 的 `"Error {url}: Login failed"` 路径），**第 6 次起**才进入冷却抛 `"Too many login failures..."` 异常
+- `_LOGGER.exception` 打印的异常消息可能含服务端返回的原始响应字典（包括登录失败时的 `resp` 内容），请确保日志安全，避免在公开场合泄露 traceback
+
 
 ## 3.0.1
 

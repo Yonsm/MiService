@@ -3,7 +3,7 @@
 [中文](README.md) | **English**
 
 ![PyPI](https://img.shields.io/pypi/v/miservice)
-![License](https://img.shields.io/badge/license-MIT-blue)
+[![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/Yonsm/MiService/blob/main/LICENSE)
 
 XiaoMi Cloud Service for mi.com — A Python library and CLI for Xiaomi Cloud services.
 
@@ -13,7 +13,7 @@ Supports Xiaomi account login (with OTP two-factor authentication), MiIO/MIoT de
 
 - Xiaomi account login and service token management (supports SMS/Email OTP two-factor authentication)
 - MiIO protocol device control (property read/write, action invocation)
-- MIoT Spec interface documentation queries (supports text/python formatted output (raw dict by default))
+- MIoT Spec interface documentation queries ([miot-spec.com](https://home.miot-spec.com/), supports text/python formatted output (raw dict by default))
 - MiNA XiaoAi Speaker control: TTS broadcast, volume, playback control, status queries, AI response retrieval
 - Direct LAN device control (`MiIOLocalService`), no cloud account needed
 - CLI tool `miservice` for one-line device operations; also supports `python -m miservice`
@@ -82,7 +82,7 @@ MiService: XiaoMi Cloud Service
 ## CLI Usage
 
 ```
-MiService 3.0.1 - XiaoMi Cloud Service
+MiService 3.0.2 - XiaoMi Cloud Service
 
 Usage: The following variables must be set:
            export MI_USER=<Username>
@@ -322,7 +322,3 @@ async def main():
 
 asyncio.run(main())
 ```
-
-## License
-
-[MIT](LICENSE)

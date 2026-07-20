@@ -31,6 +31,7 @@ classifiers = [
 [project.optional-dependencies]
 aiohttp = ["aiohttp"]
 crypto = ["pycryptodome"]
+dev = ["pytest", "pytest-asyncio", "ruff", "mypy", "build", "twine"]
 
 [project.urls]
 Homepage = "https://github.com/Yonsm/MiService"

@@ -3,7 +3,7 @@
 from base64 import b64encode
 from hashlib import md5, sha1
 from json import dumps, loads
-from os import remove, path, chmod
+from os import remove, path
 from random import sample
 from string import ascii_letters, digits
 from time import time
@@ -14,6 +14,11 @@ from typing import Optional, Callable, Awaitable
 
 from logging import getLogger
 _LOGGER = getLogger(__package__)
+
+
+_RATE_LIMIT_CODE = 70022
+_RETRY_MAX = 5
+_COOLDOWN = 7200
 
 ACCOUNT_BASE = 'https://account.xiaomi.com'
 
@@ -73,7 +78,6 @@ class MiTokenStore:
                 def _write():
                     with open(self.token_path, 'w') as f:
                         f.write(dumps(token, indent=2))
-                    chmod(self.token_path, 0o600)
                 await get_running_loop().run_in_executor(None, _write)
             except Exception as e:
                 _LOGGER.exception("Exception on save token to %s: %s", self.token_path, e)
@@ -97,7 +101,8 @@ class MiAccount:
         self.token_store = MiTokenStore(token_store) if isinstance(token_store, str) else token_store
         self.otp_callback = otp_callback  # async (otp_method: str) -> str
         self.token: Optional[dict] = None
-        self._login_error: Optional[str] = None
+        self._login_failures = 0  # Consecutive rate-limit failures (70022)
+        self._login_cooldown_until: float = 0  # Timestamp until which login is blocked
 
     def request(self, url: str, method: str = 'GET', **kwargs):
         return self._session.request(method, url, **kwargs)
@@ -116,11 +121,22 @@ class MiAccount:
         await self.close()
 
     async def login(self, sid: str) -> bool:
+        if self._login_failures >= _RETRY_MAX:
+            if time() < self._login_cooldown_until:
+                raise Exception(f"Too many login failures, retry after {int((self._login_cooldown_until - time()) / 3600) + 1}h")
+            self._login_failures = 0
+
         if not self.token:
             self.token = {'deviceId': get_random(16).upper()}
         try:
             resp = await self._serviceLogin(f'serviceLogin?sid={sid}&_json=true')
             if resp.get('code') != 0:
+                if resp.get('code') == _RATE_LIMIT_CODE:
+                    self._login_failures += 1
+                    if self._login_failures == _RETRY_MAX:
+                        self._login_cooldown_until = time() + _COOLDOWN
+                    raise Exception(f"Rate limited: {resp.get('tips', '')}")
+
                 data = {
                     '_json': 'true',
                     'qs': resp['qs'],
@@ -146,11 +162,11 @@ class MiAccount:
             self.token[sid] = (resp['ssecurity'], serviceToken)
             if self.token_store:
                 await self.token_store.save_token(self.token)
+
             return True
 
         except Exception as e:
             self.token = None
-            self._login_error = str(e)
             if self.token_store:
                 await self.token_store.save_token()
             _LOGGER.exception("Exception on login %s: %s", self.username, e)
@@ -280,6 +296,7 @@ class MiAccount:
     async def mi_request(self, sid: str, url: str, data, headers: dict, relogin: bool = True) -> dict:
         if self.token is None and self.token_store is not None:
             self.token = await self.token_store.load_token()
+
         if (self.token and sid in self.token) or await self.login(sid):  # Ensure login
             cookies = {'userId': self.token['userId'], 'serviceToken': self.token[sid][1]}
             content = data(self.token, cookies) if callable(data) else data
@@ -302,5 +319,5 @@ class MiAccount:
                         await self.token_store.save_token()
                     return await self.mi_request(sid, url, data, headers, False)
         else:
-            resp = f"Login failed: {self._login_error or 'unknown error'}"
+            resp = "Login failed"
         raise Exception(f"Error {url}: {resp}")

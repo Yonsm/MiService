@@ -3,7 +3,7 @@
 **中文** | [English](README_EN.md)
 
 [![PyPI](https://img.shields.io/pypi/v/miservice)](https://pypi.org/project/miservice/)
-[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/Yonsm/MiService/blob/main/LICENSE)
 
 XiaoMi Cloud Service for mi.com — 小米云服务 Python 库与命令行工具。
 
@@ -13,7 +13,7 @@ XiaoMi Cloud Service for mi.com — 小米云服务 Python 库与命令行工具
 
 - 小米账号登录与服务令牌管理（支持 SMS/Email OTP 两步验证）
 - MiIO 协议设备控制（属性读取/设置、动作调用）
-- MIoT Spec 接口文档查询（支持 text/python 格式化输出（不指定时返回原始 dict））
+- MIoT Spec 接口文档查询（[miot-spec.com](https://home.miot-spec.com/)，支持 text/python 格式化输出（不指定时返回原始 dict））
 - MiNA 小爱音箱控制：TTS 语音播报、音量、播放控制、状态查询、AI 应答获取
 - 局域网本地直连设备（`MiIOLocalService`），无需云端账号
 - 命令行工具 `miservice`，一行命令操作设备；亦支持 `python -m miservice`
@@ -82,7 +82,7 @@ MiService：XiaoMi Cloud Service
 ## 命令行用法
 
 ```
-MiService 3.0.1 - XiaoMi Cloud Service
+MiService 3.0.2 - XiaoMi Cloud Service
 
 Usage: The following variables must be set:
            export MI_USER=<Username>
@@ -322,7 +322,3 @@ async def main():
 
 asyncio.run(main())
 ```
-
-## 许可证
-
-[MIT](LICENSE)
