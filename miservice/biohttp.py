@@ -95,11 +95,14 @@ def _do_request(url, method, kwargs, cookie_jar=None):
 class ClientSession:
     """aiohttp-compatible async session backed by urllib."""
 
-    def __init__(self):
+    def __init__(self, timeout: int = 30):
         self._cookie_jar = {}  # host -> {name: value}, scoped per host to avoid cross-domain leakage
+        self._default_timeout = timeout
 
     def request(self, method, url, **kwargs):
         host = parse.urlparse(url).netloc
+        if 'timeout' not in kwargs:
+            kwargs['timeout'] = self._default_timeout
 
         @asynccontextmanager
         async def ctx():

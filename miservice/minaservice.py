@@ -201,7 +201,18 @@ class MiNAService:
                 if deviceId and hardware:
                     self._device2hardware[deviceId] = hardware
 
-    async def send_message(self, devices, devno: int, message: Optional[str] = None, volume=None) -> bool:  # -1/1/2...
+    async def send_message(self, devices, devno: int = -1, message: Optional[str] = None, volume=None) -> bool:
+        """Send TTS message and/or set volume on specified MiNA devices.
+
+        Args:
+            devices: List of MiNA device dicts (from device_list()).
+            devno: Device selector — -1 for all devices, 1..N for the Nth device.
+            message: TTS text to broadcast. If None, only volume is adjusted.
+            volume: Volume level (0-100). If None, only TTS is sent.
+
+        Returns:
+            True if at least one device operation succeeded, False otherwise.
+        """
         result = False
         for i in range(0, len(devices)):
             capabilities = devices[i].get('capabilities') or {}

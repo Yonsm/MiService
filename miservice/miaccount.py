@@ -87,7 +87,8 @@ class MiAccount:
     def __init__(self, session, username: str, password: str,
                  token_store='.mi.token',
                  otp_callback: Callable[[str], Awaitable[str]] = otp_input):
-        if session is None:
+        self._owns_session = session is None
+        if self._owns_session:
             from .biohttp import ClientSession
             session = ClientSession()
         self._session = session
@@ -100,6 +101,19 @@ class MiAccount:
 
     def request(self, url: str, method: str = 'GET', **kwargs):
         return self._session.request(method, url, **kwargs)
+
+    async def close(self):
+        """Close the session if it was auto-created."""
+        if self._owns_session and self._session:
+            close = getattr(self._session, 'close', None)
+            if close:
+                await close()
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        await self.close()
 
     async def login(self, sid: str) -> bool:
         if not self.token:
