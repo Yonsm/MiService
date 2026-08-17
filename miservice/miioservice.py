@@ -148,11 +148,43 @@ class MiIOService:
         return result.get('code', -1)
 
     async def device_list(self, name: Optional[str] = None, getVirtualModel=False, getHuamiDevices=0):
-        result = await self.miio_request('/home/device_list', {'getVirtualModel': bool(getVirtualModel), 'getHuamiDevices': int(getHuamiDevices)})
-        result = (result or {}).get('list') or []
+        # v2 device_list_page with explicit dids also returns shared/family-member
+        # devices (the old /home/device_list only returns the account's own devices).
+        dids = await self._home_dids()
+        if dids:
+            page = []
+            for i in range(0, len(dids), 50):
+                result = await self.miio_request('/v2/home/device_list_page', {
+                    'getVirtualModel': bool(getVirtualModel),
+                    'getHuamiDevices': int(getHuamiDevices),
+                    'get_split_device': True,
+                    'support_smart_home': True,
+                    'limit': 200,
+                    'dids': dids[i:i + 50],
+                })
+                page.extend((result or {}).get('list') or [])
+            result = page
+        else:
+            result = await self.miio_request('/home/device_list', {'getVirtualModel': bool(getVirtualModel), 'getHuamiDevices': int(getHuamiDevices)})
+            result = (result or {}).get('list') or []
         if name == 'full':
             return result
         return [{'name': i['name'], 'model': i['model'], 'did': i['did'], 'token': i['token']} for i in result if not name or name in i['name']]
+
+    async def _home_dids(self) -> list:
+        """Collect all device dids from the account's own and shared homes.
+
+        Family-member accounts see devices only via shared homes
+        (fetch_share / fetch_share_dev), so both home lists are merged.
+        """
+        homes = await self.home_list('full')
+        dids = []
+        for h in homes:
+            dids.extend(h.get('dids') or [])
+            for r in h.get('roomlist', []) or []:
+                dids.extend(r.get('dids') or [])
+        # deduplicate, preserving order
+        return list(dict.fromkeys(d for d in dids if d))
 
     async def home_list(self, name: Optional[str] = None):
         """Fetch home/room hierarchy with device assignments.
@@ -165,9 +197,17 @@ class MiIOService:
         Returns a list of homes, each containing rooms with their device DIDs.
         Example: [{'id': 123, 'name': '我的家', 'rooms': [{'id': 456, 'name': '客厅', 'dids': [...]}, ...]}, ...]
         """
-        result = await self.miio_request('/homeroom/gethome', {})
+        result = await self.miio_request('/v2/homeroom/gethome', {
+            'limit': 150,
+            'fetch_share': True,
+            'fetch_share_dev': True,
+            'plat_form': 0,
+            'app_ver': 9,
+        })
         if not isinstance(result, list):
-            result = (result or {}).get('homelist') or (result or {}).get('list') or []
+            # v2 gethome returns homelist + share_home_list; merge both so
+            # family-member accounts also see shared homes/devices.
+            result = ((result or {}).get('homelist') or []) + ((result or {}).get('share_home_list') or [])
         if name == 'full':
             return result
         return [{'id': h.get('id'), 'name': h.get('name'), 'rooms': [{'id': r.get('id'), 'name': r.get('name'), 'dids': r.get('dids', [])} for r in h.get('roomlist', [])]} for h in result if not name or name in (h.get('name') or '')]
