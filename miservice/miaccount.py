@@ -264,6 +264,13 @@ class MiAccount:
         # 7a: Follow location to set auth cookies in session
         async with self.request(location, headers=headers, cookies=cookies) as r:
             await r.read()
+            final_url = str(r.url)
+
+        # 7a': Xiaomi may stop at a "confirm your phone" page (/fe/service/verifyPhone);
+        # its confirmUrl continues the chain to serviceLoginAuth2/end, which sets passToken
+        if confirm_url := parse.parse_qs(parse.urlparse(final_url).query).get('confirmUrl'):
+            async with self.request(confirm_url[0], headers=headers, cookies=cookies) as r:
+                await r.read()
 
         # 7b: Re-do serviceLogin — session now authenticated, should return code==0
         resp = await self._serviceLogin(f'serviceLogin?sid={sid}&_json=true')
