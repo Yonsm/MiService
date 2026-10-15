@@ -23,6 +23,7 @@ class ClientResponse:
         self._resp = resp
         self.status = getattr(resp, 'status', None) or getattr(resp, 'code', 0)
         self.cookies = cookies
+        self.url = getattr(resp, 'url', None)  # Final URL after redirects, like aiohttp
         self._body = None
 
     async def read(self) -> bytes:
